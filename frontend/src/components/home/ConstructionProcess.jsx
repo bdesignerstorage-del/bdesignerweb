@@ -1,16 +1,15 @@
 import React from "react";
 import { ChevronRight } from "lucide-react";
 import getIcon from "@/components/home/iconMap";
-import { useLeadModal } from "@/context/LeadModalContext";
 
 /**
- * ConstructionProcess (Fix 4) — heading now shows ONLY:
+ * ConstructionProcess — heading shows ONLY:
  *    HOW IT WORKS
  *    Construction Process
- * No descriptive paragraph.
+ * No descriptive paragraph. Section-level CTAs were removed — the single
+ * approved "Plan Your Dream Home" CTA lives in the navbar.
  */
 export default function ConstructionProcess({ items = [] }) {
-  const { openLeadModal } = useLeadModal();
   const visible = (items || []).filter((i) => !i.hidden);
   if (!visible.length) return null;
 
@@ -53,17 +52,6 @@ export default function ConstructionProcess({ items = [] }) {
             </React.Fragment>
           );
         })}
-      </div>
-
-      <div className="mt-5 sm:mt-7">
-        <button
-          type="button"
-          onClick={() => openLeadModal({ source: "process_cta", title: "Talk to an Expert", subtitle: "Our construction advisor will walk you through every step." })}
-          data-testid="process-cta-talk-expert"
-          className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full btn-gold-metallic text-white font-semibold text-sm transition shadow-[0_6px_18px_rgba(172,136,51,0.32)]"
-        >
-          Talk to an Expert
-        </button>
       </div>
     </section>
   );

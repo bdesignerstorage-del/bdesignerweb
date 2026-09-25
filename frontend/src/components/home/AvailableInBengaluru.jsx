@@ -1,12 +1,12 @@
 import React from "react";
-import { MapPin, CheckCircle2 } from "lucide-react";
-import { useLeadModal } from "@/context/LeadModalContext";
+import { MapPin } from "lucide-react";
 
 /**
  * Available in Bengaluru — left illustration / right service area chips.
+ * The "Check Availability" CTA was removed — serviceability will be handled
+ * inside the Requirement Form.
  */
 export default function AvailableInBengaluru({ items = [] }) {
-  const { openLeadModal } = useLeadModal();
   const visible = (items || []).filter((i) => !i.hidden);
   if (!visible.length) return null;
 
@@ -55,16 +55,6 @@ export default function AvailableInBengaluru({ items = [] }) {
               </span>
             ))}
           </div>
-
-          <button
-            type="button"
-            onClick={() => openLeadModal({ source: "availability_check", title: "Check Availability", subtitle: "Tell us where you're planning to build — we'll confirm coverage in 30 minutes." })}
-            data-testid="availability-check-cta"
-            className="mt-5 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full btn-gold-metallic text-white font-semibold text-sm transition shadow-[0_6px_18px_rgba(172,136,51,0.32)]"
-          >
-            <CheckCircle2 className="w-4 h-4" />
-            Check Availability
-          </button>
         </div>
       </div>
     </section>

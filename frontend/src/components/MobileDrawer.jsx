@@ -1,37 +1,48 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   X, Search as SearchIcon,
-  Home, Compass, BarChart3, FolderOpen,
-  Package, Settings2, PhoneCall,
-  UserCircle2, Star, Newspaper, Phone,
-  Instagram, Facebook, Youtube, Linkedin,
+  Home, Compass, FolderOpen, Info, HelpCircle, Phone,
+  UserCircle2, ClipboardList, Smartphone,
   LogOut,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { useLeadModal } from "@/context/LeadModalContext";
-import { useSettings } from "@/context/SettingsContext";
 import { ThemeSegmented } from "@/components/ThemeToggle";
 
 /**
  * MobileDrawer — left-side slide-in navigation.
  *
- * Design (Aug-2025 spec, "Frido-style"):
+ * Visual design (preserved, do not restyle):
  *   • Slides in from the LEFT with a 300 ms ease.
- *   • Width: 85% of the viewport, max 380 px.
- *   • Backdrop: solid black at 40% opacity, tap or swipe left to close.
+ *   • Width: 90% of the viewport, max 420 px.
+ *   • Backdrop: solid black at 45% opacity, tap or swipe left to close.
  *   • Header: large "Menu" title on the left, X close on the right.
  *   • Sticky search bar directly under the header.
  *   • Flat sections (no accordions) with rounded touch-friendly item cards.
- *   • Gold accents (#B79232), BDesigner typography.
+ *
+ * Content (frozen public IA, docs/rules.md §8):
+ *   NAVIGATION  — Home / Projects / How It Works / About Us / FAQs / Contact Us
+ *   GET STARTED — Plan Your Dream Home / Get BDesigner App / Login
+ *   APPEARANCE  — Light | Dark
  */
 export default function MobileDrawer({ open, onClose, onOpenSearch }) {
   const { user, logout, setAuthOpen, setAuthMode } = useAuth();
   const { openLeadModal } = useLeadModal();
-  const { settings } = useSettings();
   const [entered, setEntered] = useState(false);
   const startXRef = useRef(null);
+  const installPromptRef = useRef(null);
+  const loc = useLocation();
+  const navigate = useNavigate();
+
+  // Capture the PWA install prompt (only fires when installable).
+  useEffect(() => {
+    const handler = (e) => { e.preventDefault(); installPromptRef.current = e; };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
 
   // Slide-in animation
   useEffect(() => {
@@ -71,27 +82,68 @@ export default function MobileDrawer({ open, onClose, onOpenSearch }) {
   };
   const onTouchEnd = () => { startXRef.current = null; };
 
-  const isCustomer = user?.id && user.role === "customer";
+  const isLoggedIn = Boolean(user?.id);
 
-  const openConsultation = () => {
+  // Plan Your Dream Home → requirement entry point (existing enquiry modal
+  // until the dedicated Requirement Form ships).
+  const openRequirement = () => {
     onClose?.();
-    setTimeout(() => openLeadModal({ source: "mobile_drawer" }), 220);
+    setTimeout(() => openLeadModal({
+      source: "mobile_drawer",
+      title: "Plan Your Dream Home",
+      subtitle: "Tell us about your plot and requirements — our team will take it from there.",
+    }), 220);
   };
   const openLogin = () => {
     onClose?.();
     setTimeout(() => { setAuthMode("login"); setAuthOpen(true); }, 220);
   };
-  const openRegister = () => {
+
+  // Get BDesigner App — real PWA install when supported, otherwise honest
+  // Add-to-Home-Screen guidance. Never fake a store download.
+  const getApp = () => {
     onClose?.();
-    setTimeout(() => { setAuthMode("register"); setAuthOpen(true); }, 220);
+    const promptEvent = installPromptRef.current;
+    if (promptEvent) {
+      setTimeout(async () => {
+        promptEvent.prompt();
+        try { await promptEvent.userChoice; } catch { /* dismissed */ }
+        installPromptRef.current = null;
+      }, 220);
+    } else {
+      setTimeout(() => toast.info(
+        "To get the BDesigner App, open your browser menu and choose “Add to Home Screen”. The native app is coming soon."
+      ), 240);
+    }
   };
 
-  const socials = settings?.socials || {};
+  // Projects → approved public project list currently lives on the Homepage
+  // "Trending Projects" rail; scroll to it until the Projects page is built.
+  const goProjects = () => {
+    onClose?.();
+    if (loc.pathname !== "/") navigate("/");
+    let tries = 0;
+    const t = setInterval(() => {
+      const el = document.querySelector('[data-testid="recent-projects-section"]');
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        clearInterval(t);
+      } else if (++tries > 25) {
+        clearInterval(t);
+      }
+    }, 150);
+  };
+
+  // Pages not yet rebuilt — honest, non-breaking placeholder.
+  const goSoon = (label) => () => {
+    onClose?.();
+    setTimeout(() => toast.info(`${label} page is coming soon.`), 240);
+  };
 
   return createPortal(
     <div
       data-testid="mobile-drawer"
-      className="md:hidden"
+      className="lg:hidden"
       role="dialog"
       aria-modal="true"
     >
@@ -152,57 +204,33 @@ export default function MobileDrawer({ open, onClose, onOpenSearch }) {
           className="flex-1 overflow-y-auto px-5 py-4"
           style={{ animation: "drawerFadeIn 340ms ease-out both" }}
         >
-          {/* SERVICES */}
-          <Section title="SERVICES">
-            <MenuLink to="/packages" icon={Home} label="House Construction" onClose={onClose} testid="drawer-house-construction" />
-            <MenuLink to="/architecture-services" icon={Compass} label="Architectural Services" onClose={onClose} testid="drawer-architectural" />
-            <MenuLink to="/cost-calculator" icon={BarChart3} label="Free Estimate" onClose={onClose} testid="drawer-estimator" />
-            <MenuLink to="/projects" icon={FolderOpen} label="Project Gallery" onClose={onClose} testid="drawer-gallery" />
+          {/* NAVIGATION */}
+          <Section title="NAVIGATION">
+            <MenuLink to="/" icon={Home} label="Home" onClose={onClose} testid="drawer-home" />
+            <MenuAction onClick={goProjects} icon={FolderOpen} label="Projects" testid="drawer-projects" />
+            <MenuAction onClick={goSoon("How It Works")} icon={Compass} label="How It Works" testid="drawer-how-it-works" />
+            <MenuAction onClick={goSoon("About Us")} icon={Info} label="About Us" testid="drawer-about" />
+            <MenuAction onClick={goSoon("FAQs")} icon={HelpCircle} label="FAQs" testid="drawer-faqs" />
+            <MenuAction onClick={goSoon("Contact Us")} icon={Phone} label="Contact Us" testid="drawer-contact" />
           </Section>
 
           {/* GET STARTED */}
           <Section title="GET STARTED">
-            <MenuLink to="/packages" icon={Package} label="Our Packages" badge="Popular" onClose={onClose} testid="drawer-packages" />
-            <MenuLink to="/how-we-work" icon={Settings2} label="How It Works" onClose={onClose} testid="drawer-how-it-works" />
-            <MenuAction onClick={openConsultation} icon={PhoneCall} label="Book Free Consultation" testid="drawer-consultation" tone="gold" />
-          </Section>
-
-          {/* APPEARANCE — Light / Dark theme (mobile) */}
-          <Section title="APPEARANCE">
-            <ThemeSegmented />
-          </Section>
-
-          {/* COMPANY */}
-          <Section title="COMPANY">
-            <MenuLink to="/about" icon={UserCircle2} label="About Us" onClose={onClose} testid="drawer-about" />
-            <MenuLink to="/testimonials" icon={Star} label="Testimonials" onClose={onClose} testid="drawer-testimonials" />
-            <MenuLink to="/news" icon={Newspaper} label="News & Media" onClose={onClose} testid="drawer-news" />
-            <MenuLink to="/contact" icon={Phone} label="Contact Us" onClose={onClose} testid="drawer-contact" />
-          </Section>
-
-          {/* ACCOUNT */}
-          <Section title="ACCOUNT">
-            {isCustomer ? (
+            <MenuAction onClick={openRequirement} icon={ClipboardList} label="Plan Your Dream Home" testid="drawer-plan-dream-home" tone="gold" />
+            <MenuAction onClick={getApp} icon={Smartphone} label="Get BDesigner App" testid="drawer-get-app" />
+            {isLoggedIn ? (
               <>
-                <MenuLink to="/homeowner" icon={UserCircle2} label={user.name || "My Account"} onClose={onClose} testid="drawer-my-account" />
+                <MenuLink to="/profile" icon={UserCircle2} label={user.name || "My Account"} onClose={onClose} testid="drawer-my-account" />
                 <MenuAction onClick={() => { onClose?.(); setTimeout(logout, 200); }} icon={LogOut} label="Logout" testid="drawer-logout" tone="danger" />
               </>
             ) : (
-              <>
-                <MenuAction onClick={openLogin} icon={UserCircle2} label="Login" testid="drawer-login" />
-                <MenuAction onClick={openRegister} icon={UserCircle2} label="Create Account" testid="drawer-register" tone="gold" />
-              </>
+              <MenuAction onClick={openLogin} icon={UserCircle2} label="Login" testid="drawer-login" />
             )}
           </Section>
 
-          {/* FOLLOW US */}
-          <Section title="FOLLOW US">
-            <div className="grid grid-cols-2 gap-2" data-testid="drawer-socials">
-              <SocialLink href={socials.instagram} icon={Instagram} label="Instagram" testid="drawer-instagram" />
-              <SocialLink href={socials.facebook}  icon={Facebook}  label="Facebook"  testid="drawer-facebook" />
-              <SocialLink href={socials.youtube}   icon={Youtube}   label="YouTube"   testid="drawer-youtube" />
-              <SocialLink href={socials.linkedin}  icon={Linkedin}  label="LinkedIn"  testid="drawer-linkedin" />
-            </div>
+          {/* APPEARANCE — Light / Dark theme */}
+          <Section title="APPEARANCE">
+            <ThemeSegmented />
           </Section>
 
           {/* BOTTOM */}
@@ -249,16 +277,6 @@ function baseItemClasses(tone, disabled) {
   } text-sm font-semibold transition ${cls} ${disabled ? "opacity-60 cursor-not-allowed" : ""}`;
 }
 
-// Small pill next to menu items. Gold pill for "Popular" / "Recommended" /
-// "New" / "Hot" — otherwise a neutral grey pill. Keeps the drawer premium
-// while highlighting the destinations we want to push.
-const badgeClass = (label = "") => {
-  const goldish = /popular|recommended|new|hot|beta/i.test(String(label));
-  return goldish
-    ? "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-gradient-to-br from-[#F8E9B8] to-[#C9982F] text-[#4A3410] whitespace-nowrap shadow-[0_2px_6px_rgba(172,136,51,0.24)]"
-    : "text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 whitespace-nowrap";
-};
-
 // Neutral icon chip used for every non-active drawer item.
 // Only "gold" tone (currently selected/highlighted) and "danger" keep
 // their special appearance; everything else uses the premium neutral chip.
@@ -271,7 +289,7 @@ const chipClass = (tone) =>
       : "icon-chip"
   }`;
 
-function MenuLink({ to, icon: Icon, label, badge, onClose, testid, tone = "default", disabled }) {
+function MenuLink({ to, icon: Icon, label, onClose, testid, tone = "default", disabled }) {
   if (disabled || !to) {
     return (
       <div className={baseItemClasses(tone, disabled)} data-testid={testid}>
@@ -279,11 +297,6 @@ function MenuLink({ to, icon: Icon, label, badge, onClose, testid, tone = "defau
           <Icon className="w-5 h-5" />
         </span>
         <span className="flex-1 truncate">{label}</span>
-        {badge && (
-          <span className={badgeClass(badge)}>
-            {badge}
-          </span>
-        )}
       </div>
     );
   }
@@ -298,11 +311,6 @@ function MenuLink({ to, icon: Icon, label, badge, onClose, testid, tone = "defau
         <Icon className="w-5 h-5" />
       </span>
       <span className="flex-1 truncate">{label}</span>
-      {badge && (
-        <span className={badgeClass(badge)}>
-          {badge}
-        </span>
-      )}
     </Link>
   );
 }
@@ -320,27 +328,5 @@ function MenuAction({ onClick, icon: Icon, label, testid, tone = "default" }) {
       </span>
       <span className="flex-1 text-left">{label}</span>
     </button>
-  );
-}
-
-function SocialLink({ href, icon: Icon, label, testid }) {
-  const disabled = !href;
-  const cls = `flex items-center gap-2 px-3 py-2.5 rounded-2xl border border-slate-200/70 text-sm font-medium text-slate-800 transition ${
-    disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-slate-50 active:bg-slate-100"
-  }`;
-  const content = (
-    <>
-      <span className="w-8 h-8 rounded-xl icon-chip grid place-items-center">
-        <Icon className="w-5 h-5" />
-      </span>
-      <span className="truncate">{label}</span>
-    </>
-  );
-  return disabled ? (
-    <span className={cls} data-testid={testid}>{content}</span>
-  ) : (
-    <a href={href} target="_blank" rel="noreferrer" className={cls} data-testid={testid}>
-      {content}
-    </a>
   );
 }

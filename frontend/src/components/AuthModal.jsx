@@ -182,16 +182,17 @@ export default function AuthModal() {
         data-testid="auth-modal"
         className="bg-white border border-[#EAEAEA] text-slate-900 p-0 overflow-hidden max-w-md rounded-3xl shadow-[0_20px_60px_rgba(15,23,42,0.15)] flex flex-col max-h-[calc(100dvh-1rem)]"
       >
-        {/* Custom always-on-top close button. Positioned relative to the
-            DialogContent frame with a very high z-index so it can never be
-            covered by the sticky header or any scrolled content. Sized as a
-            44px touch target with safe-area aware offsets for mobile. */}
+        {/* Shared modal close button — one component/style for Login and
+            Create Account. Always-on-top, 44px touch target, 20px X icon.
+            The modal surface is always white, so the icon uses a fixed
+            near-black (#111111) that stays visible in Light AND Dark mode
+            (theme tokens would flip it to white on white). */}
         <button
           type="button"
           aria-label="Close"
           data-testid="auth-modal-close"
           onClick={() => handleClose(false)}
-          className="absolute grid place-items-center w-11 h-11 rounded-full bg-white border border-slate-200 text-ink-900 shadow-[0_4px_14px_rgba(0,0,0,0.14)] hover:bg-slate-50 active:scale-95 transition focus:outline-none focus:ring-2 focus:ring-gold/40 z-[70]"
+          className="absolute grid place-items-center w-11 h-11 rounded-full bg-white border border-slate-200 text-[#111111] shadow-[0_4px_14px_rgba(0,0,0,0.14)] hover:bg-slate-100 active:scale-95 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/40 z-[70]"
           style={{
             top: "max(0.75rem, env(safe-area-inset-top))",
             right: "max(0.75rem, env(safe-area-inset-right))",
