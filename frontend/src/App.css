@@ -1,0 +1,11 @@
+/* App-level styles intentionally minimal — all theme lives in index.css */
+
+/* Hide the Emergent platform badge if it gets re-injected at runtime */
+#emergent-badge,
+a#emergent-badge,
+a[href*="emergent.sh"][id="emergent-badge"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
