@@ -2698,18 +2698,19 @@ html[data-theme="dark"] .bd-theme-toast__desc { color: #B5B5B5 !important; }
   color: #0B0B0B !important;
   -webkit-text-fill-color: #0B0B0B !important;
 }
-/* Primary CTA — solid warm gold, dark ink text, both themes */
+/* Primary CTA — matches Homepage sticky CTA: dark-mode white bg/black text,
+   light-mode black bg/white text (NOT gold). Uses button-primary tokens. */
 .bd-req-cta {
-  background: var(--accent-gold) !important;
-  color: #0B0B0B !important;
-  -webkit-text-fill-color: #0B0B0B !important;
+  background: var(--button-primary) !important;
+  color: var(--button-primary-text) !important;
+  -webkit-text-fill-color: var(--button-primary-text) !important;
   font-weight: 700;
-  transition: filter .18s ease, transform .16s ease;
+  transition: filter .18s ease, transform .16s ease, opacity .16s ease;
 }
-.bd-req-cta:hover:not(:disabled) { filter: brightness(1.07); }
+.bd-req-cta:hover:not(:disabled) { background: var(--button-primary-hover) !important; }
 .bd-req-cta:active:not(:disabled) { transform: scale(0.985); }
-.bd-req-cta:disabled { opacity: .55; cursor: not-allowed; }
-.bd-req-cta svg { color: #0B0B0B !important; }
+.bd-req-cta:disabled { opacity: .5; cursor: not-allowed; }
+.bd-req-cta svg { color: var(--button-primary-text) !important; }
 /* Secondary / ghost button */
 .bd-req-ghost {
   background: transparent;
@@ -2722,16 +2723,17 @@ html[data-theme="dark"] .bd-theme-toast__desc { color: #B5B5B5 !important; }
 /* Progress track */
 .bd-req-track { background: var(--border-primary); }
 .bd-req-track-on { background: var(--accent-gold); }
-/* Selectable image / option card */
+/* Selectable image / option card — selection uses a subtle NEUTRAL surface +
+   slightly stronger neutral border (no gold border, no glow, no layout shift). */
 .bd-req-pick {
   background: var(--background-card);
   border: 1px solid var(--border-primary);
-  transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease;
+  transition: border-color .18s ease, transform .18s ease, background-color .18s ease;
 }
 .bd-req-pick:hover { border-color: var(--border-strong); transform: translateY(-2px); }
 .bd-req-pick--on {
-  border-color: var(--accent-gold) !important;
-  box-shadow: 0 0 0 1px var(--accent-gold);
+  border-color: var(--border-strong) !important;
+  background: var(--surface-secondary);
 }
 /* Icon button (close / back) */
 .bd-req-iconbtn {
@@ -2741,10 +2743,11 @@ html[data-theme="dark"] .bd-theme-toast__desc { color: #B5B5B5 !important; }
   transition: border-color .15s ease, background .15s ease;
 }
 .bd-req-iconbtn:hover { border-color: var(--border-strong); background: var(--surface-secondary); }
-/* Field wrapper — reuse token behaviour of bd-af-field */
+/* Field wrapper — standard BDesigner requirement-form input size (~54px). */
 .bd-req-field {
   background: var(--input-background);
   border: 1px solid var(--input-border);
+  min-height: 54px;
   transition: border-color .15s ease;
 }
 .bd-req-field:focus-within { border-color: var(--border-strong) !important; }
@@ -2756,7 +2759,7 @@ html[data-theme="dark"] .bd-theme-toast__desc { color: #B5B5B5 !important; }
 }
 .bd-req-field input::placeholder,
 .bd-req-field textarea::placeholder { color: var(--input-placeholder) !important; -webkit-text-fill-color: var(--input-placeholder) !important; }
-/* Segmented option */
+/* Segmented option — NEUTRAL selected surface (not primary CTA, not gold). */
 .bd-req-seg {
   background: var(--background-card);
   border: 1px solid var(--border-primary);
@@ -2766,25 +2769,25 @@ html[data-theme="dark"] .bd-theme-toast__desc { color: #B5B5B5 !important; }
 }
 .bd-req-seg:hover { border-color: var(--border-strong); }
 .bd-req-seg--on {
-  background: var(--accent-gold) !important;
-  border-color: var(--accent-gold) !important;
-  color: #0B0B0B !important;
-  -webkit-text-fill-color: #0B0B0B !important;
+  background: var(--surface-secondary) !important;
+  border-color: var(--text-primary) !important;
+  color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
 }
-/* Chip */
+/* Chip — NEUTRAL selected surface (small, readable touch target). */
 .bd-req-chip {
   background: var(--background-card);
   border: 1px solid var(--border-primary);
   color: var(--text-secondary) !important;
   -webkit-text-fill-color: var(--text-secondary) !important;
-  transition: border-color .15s ease, color .15s ease;
+  transition: border-color .15s ease, color .15s ease, background .15s ease;
 }
 .bd-req-chip:hover { border-color: var(--border-strong); color: var(--text-primary) !important; -webkit-text-fill-color: var(--text-primary) !important; }
 .bd-req-chip--on {
-  background: var(--accent-gold) !important;
-  border-color: var(--accent-gold) !important;
-  color: #0B0B0B !important;
-  -webkit-text-fill-color: #0B0B0B !important;
+  background: var(--surface-secondary) !important;
+  border-color: var(--text-primary) !important;
+  color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
 }
 /* Divider row inside cards */
 .bd-req-divide > * + * { border-top: 1px solid var(--border-divider); }

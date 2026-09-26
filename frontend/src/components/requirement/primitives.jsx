@@ -31,7 +31,7 @@ export function ReqCard({ title, right, subtitle, children, className = "" }) {
 
 export function ReqField({ placeholder, value, onChange, type = "text", testid, icon, inputMode }) {
   return (
-    <div className="bd-req-field relative flex items-center gap-2 rounded-xl px-3.5 py-3">
+    <div className="bd-req-field relative flex items-center gap-2 rounded-xl px-4 py-3.5">
       {icon && <span className="text-[var(--text-muted)] shrink-0">{icon}</span>}
       <input
         data-testid={testid}
@@ -46,16 +46,16 @@ export function ReqField({ placeholder, value, onChange, type = "text", testid, 
   );
 }
 
-export function ReqSegmented({ options, value, onChange, testid }) {
+export function ReqSegmented({ options, value, onChange, testid, columns }) {
   return (
-    <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${options.length},minmax(0,1fr))` }} data-testid={testid}>
+    <div className="grid gap-2.5" style={{ gridTemplateColumns: `repeat(${columns || options.length},minmax(0,1fr))` }} data-testid={testid}>
       {options.map((o) => (
         <button
           key={o}
           type="button"
           data-testid={testid ? `${testid}-${o.replace(/\s+/g, "-").toLowerCase()}` : undefined}
           onClick={() => onChange(o)}
-          className={`bd-req-seg ${value === o ? "bd-req-seg--on" : ""} rounded-xl py-2.5 text-sm font-semibold`}
+          className={`bd-req-seg ${value === o ? "bd-req-seg--on" : ""} rounded-xl min-h-[52px] px-3 text-sm font-semibold`}
         >
           {o}
         </button>
@@ -96,7 +96,7 @@ export function ReqCounter({ label, hint, value, onChange, testid }) {
 
 export function ReqChips({ items, selected, onToggle, testid }) {
   return (
-    <div className="flex flex-wrap gap-2" data-testid={testid}>
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5" data-testid={testid}>
       {items.map((it) => {
         const on = selected.includes(it);
         return (
@@ -104,9 +104,10 @@ export function ReqChips({ items, selected, onToggle, testid }) {
             key={it}
             type="button"
             onClick={() => onToggle(it)}
-            className={`bd-req-chip ${on ? "bd-req-chip--on" : ""} text-xs font-semibold px-3.5 py-2 rounded-full`}
+            className={`bd-req-chip ${on ? "bd-req-chip--on" : ""} flex items-center gap-2 text-sm font-semibold px-3.5 py-3 min-h-[48px] rounded-xl text-left leading-tight`}
           >
-            {it}
+            {on && <Check className="w-3.5 h-3.5 bd-req-accent shrink-0" />}
+            <span className="min-w-0">{it}</span>
           </button>
         );
       })}
@@ -114,7 +115,8 @@ export function ReqChips({ items, selected, onToggle, testid }) {
   );
 }
 
-/* Image option card — used for Services + Elevation styles. */
+/* Image option card — used for Services + Elevation styles.
+   Selected = subtle neutral surface + small gold check (NO gold border, no shift). */
 export function ReqImageCard({ image, label, sublabel, selected, onClick, badge, testid }) {
   return (
     <button
@@ -125,10 +127,10 @@ export function ReqImageCard({ image, label, sublabel, selected, onClick, badge,
     >
       <span
         className={`absolute top-2.5 left-2.5 z-10 w-6 h-6 rounded-full grid place-items-center transition ${
-          selected ? "bd-req-accent-bg" : "bg-black/45 border border-white/40"
+          selected ? "bd-req-accent-bg" : "bg-black/45 border border-white/50"
         }`}
       >
-        <Check className={`w-3.5 h-3.5 ${selected ? "" : "text-white/80"}`} />
+        {selected && <Check className="w-3.5 h-3.5" />}
       </span>
       {badge && (
         <span className="bd-req-accent-bg absolute top-2.5 right-2.5 z-10 text-[10px] font-bold px-2 py-0.5 rounded">
@@ -139,11 +141,23 @@ export function ReqImageCard({ image, label, sublabel, selected, onClick, badge,
         className="aspect-[4/3] bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
         style={{ backgroundImage: `url(${image})` }}
       />
-      <div className="p-3 bg-[var(--background-card)]">
+      <div className="p-3">
         <div className="text-sm font-bold text-[var(--text-primary)] leading-tight">{label}</div>
         {sublabel && <div className="text-[11px] text-[var(--text-secondary)] mt-0.5">{sublabel}</div>}
       </div>
     </button>
+  );
+}
+
+/* Official multicolor Google "G" mark. */
+export function GoogleIcon({ className = "w-5 h-5" }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="#4285F4" d="M23.52 12.27c0-.79-.07-1.54-.2-2.27H12v4.51h6.47a5.53 5.53 0 0 1-2.4 3.63v3h3.88c2.27-2.09 3.57-5.17 3.57-8.87z"/>
+      <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.94-2.91l-3.88-3c-1.08.72-2.45 1.16-4.06 1.16-3.13 0-5.78-2.11-6.73-4.96H1.26v3.09A12 12 0 0 0 12 24z"/>
+      <path fill="#FBBC05" d="M5.27 14.29a7.2 7.2 0 0 1 0-4.58V6.62H1.26a12 12 0 0 0 0 10.76l4.01-3.09z"/>
+      <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.44-3.44A11.97 11.97 0 0 0 12 0 12 12 0 0 0 1.26 6.62l4.01 3.09C6.22 6.86 8.87 4.75 12 4.75z"/>
+    </svg>
   );
 }
 

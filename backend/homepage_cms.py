@@ -247,12 +247,12 @@ DEFAULT_CONSTRUCTION_STEPS = [
 ]
 
 DEFAULT_GUARANTEES = [
-    {"title": "Fixed Pricing",            "description": "What you sign for is what you pay. Every change is tracked digitally with your approval.", "icon": "BadgeIndianRupee", "image_url": "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=1200&q=70"},
-    {"title": "Money Safety",             "description": "Milestone-based payments via verified escrow. Funds release only after on-site QC clears.", "icon": "ShieldCheck",       "image_url": "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=1200&q=70"},
-    {"title": "No Delay",                 "description": "Daily site logs, weekly milestone reviews and penalty clauses if we slip the schedule.",     "icon": "Clock",             "image_url": "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1200&q=70"},
-    {"title": "Dedicated Project Manager","description": "One single accountable PM from kick-off to handover — your only point of contact.",          "icon": "UserCheck",         "image_url": "https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1200&q=70"},
-    {"title": "Verified Professionals",   "description": "Every engineer, vendor and supplier is KYC + background verified by BDesigner.",             "icon": "BadgeCheck",        "image_url": "https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=1200&q=70"},
-    {"title": "Warranty",                 "description": "Structural warranty up to 10 years + 1-year free service on finishing.",                     "icon": "ScrollText",        "image_url": "https://images.unsplash.com/photo-1572025442646-866d16c84a54?auto=format&fit=crop&w=1200&q=70"},
+    {"title": "Transparent Pricing",       "description": "Clear architectural charges, package rates and approved variations before work proceeds.",                 "icon": "BadgeIndianRupee", "image_url": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=1200&q=70"},
+    {"title": "Dedicated Project Manager", "description": "One project manager coordinates your project, team, approvals and key updates.",                            "icon": "UserCheck",        "image_url": "https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1200&q=70"},
+    {"title": "Structured Design Review",  "description": "Drawings follow a clear draft, review, feedback and approval workflow.",                                    "icon": "PencilRuler",      "image_url": "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1200&q=70"},
+    {"title": "Final Drawings + BOQ",      "description": "Approved project drawings and BOQ are organized before construction proposal preparation.",                  "icon": "FileSpreadsheet",  "image_url": "https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=1200&q=70"},
+    {"title": "Stage-wise Site Updates",   "description": "Construction clients receive progress updates, site photos and current-stage information.",                  "icon": "HardHat",          "image_url": "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&w=1200&q=70"},
+    {"title": "Handover Documentation",    "description": "Final drawings, project documents, payment records and completion documents remain organized in one place.", "icon": "FileCheck",        "image_url": "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=1200&q=70"},
 ]
 
 DEFAULT_ADVISOR_BENEFITS = [
@@ -378,14 +378,15 @@ DEFAULT_PACKAGES = [
 ]
 
 DEFAULT_COMPARISON = [
-    {"title": "Verified Engineers",         "meta": {"bdesigner": "yes", "others": "no"}},
-    {"title": "Dedicated Project Manager",  "meta": {"bdesigner": "yes", "others": "no"}},
-    {"title": "Construction Tracking",      "meta": {"bdesigner": "yes", "others": "no"}},
-    {"title": "Material Marketplace",       "meta": {"bdesigner": "yes", "others": "no"}},
-    {"title": "Digital BOQ",                "meta": {"bdesigner": "yes", "others": "no"}},
-    {"title": "Construction ERP",           "meta": {"bdesigner": "yes", "others": "no"}},
-    {"title": "Quality Tracking",           "meta": {"bdesigner": "yes", "others": "partial"}},
-    {"title": "Warranty",                   "meta": {"bdesigner": "yes", "others": "no"}},
+    {"title": "Architecture + Construction Workflow", "meta": {"bdesigner": "yes", "others": "partial"}},
+    {"title": "Transparent Architectural Pricing",    "meta": {"bdesigner": "yes", "others": "partial"}},
+    {"title": "Dedicated Project Manager",            "meta": {"bdesigner": "yes", "others": "partial"}},
+    {"title": "Drawing Review & Revisions",           "meta": {"bdesigner": "yes", "others": "partial"}},
+    {"title": "Project-based Team Communication",     "meta": {"bdesigner": "yes", "others": "partial"}},
+    {"title": "Central Project Documents",            "meta": {"bdesigner": "yes", "others": "partial"}},
+    {"title": "Construction Progress & Site Updates", "meta": {"bdesigner": "yes", "others": "partial"}},
+    {"title": "Package / Proposal Transparency",      "meta": {"bdesigner": "yes", "others": "partial"}},
+    {"title": "Handover & Completion Records",        "meta": {"bdesigner": "yes", "others": "partial"}},
 ]
 
 DEFAULT_TRUSTED_BRANDS = [
@@ -486,6 +487,43 @@ async def seed_homepage_defaults(db) -> None:
             logger.info("Migrated construction_step content to approved 8-step flow")
     except Exception:                                              # pragma: no cover
         pass
+
+    # ── Guarantee + Why-Choose content migration (idempotent) ──────────
+    # Replace legacy business messaging (Money Safety / No Delay /
+    # Material Marketplace / Construction ERP ...) with the current
+    # BDesigner product content. Keyed on the title-set so it runs once.
+    for _sec, _items in (("guarantee", DEFAULT_GUARANTEES), ("comparison_feature", DEFAULT_COMPARISON)):
+        try:
+            _existing = await db.homepage_blocks.find({"section": _sec}).to_list(100)
+            if not _existing:
+                continue
+            _old = {b.get("title") for b in _existing}
+            _new = {it.get("title") for it in _items}
+            if _old == _new:
+                continue
+            await db.homepage_blocks.delete_many({"section": _sec})
+            _docs = []
+            for i, it in enumerate(_items):
+                _docs.append({
+                    "id": str(uuid.uuid4()),
+                    "section": _sec,
+                    "title": it.get("title", "") or "",
+                    "description": it.get("description", "") or "",
+                    "icon": it.get("icon", "") or "",
+                    "image_url": it.get("image_url", "") or "",
+                    "value": it.get("value", "") or "",
+                    "label": it.get("label", "") or "",
+                    "link_url": it.get("link_url", "") or "",
+                    "meta": it.get("meta") or {},
+                    "order": i,
+                    "hidden": False,
+                    "created_at": _now(),
+                    "updated_at": _now(),
+                })
+            await db.homepage_blocks.insert_many(_docs)
+            logger.info("Migrated %s content to current BDesigner product", _sec)
+        except Exception:                                          # pragma: no cover
+            pass
 
     seeds = [
         ("trust_indicator",    DEFAULT_TRUST_INDICATORS),

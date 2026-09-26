@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import {
   X, ArrowLeft, ClipboardList, Upload, MapPin, Loader2, Mail,
-  Phone as PhoneIcon, ChevronDown, ChevronUp, Sparkles, CheckCircle2,
+  ChevronDown, ChevronUp, Sparkles, CheckCircle2,
 } from "lucide-react";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import {
   ReqCard, ReqField, ReqSegmented, ReqCounter, ReqChips, ReqImageCard, ReqRow,
-  ELEV_IMAGES, rupee,
+  ELEV_IMAGES, rupee, GoogleIcon,
 } from "./primitives";
 
 const LS_KEY = "bd_requirement_draft_v1";
@@ -66,6 +66,39 @@ export default function RequirementForm({ onClose }) {
     return floors.slice(0, floorCount).reduce((s, f) => s + (parseFloat(f.area) || 0), 0);
   }, [floors, storeys]);
 
+  // Calculated plot footprint from the 4 plot sides (near-rectangular avg).
+  const baseArea = useMemo(() => {
+    const f = parseFloat(dims.front), b = parseFloat(dims.back), l = parseFloat(dims.left), r = parseFloat(dims.right);
+    if ([f, b, l, r].some((v) => !(v > 0))) return 0;
+    return Math.round(((f + b) / 2) * ((l + r) / 2));
+  }, [dims]);
+
+  // Auto-populate Ground Floor with the calculated footprint (stays editable;
+  // never overwrites a value the user has manually changed).
+  const autoGfRef = useRef(null);
+  useEffect(() => {
+    if (baseArea > 0) {
+      setFloors((prev) => {
+        const cur = prev[0]?.area;
+        if (cur === "" || cur == null || String(cur) === String(autoGfRef.current)) {
+          autoGfRef.current = baseArea;
+          const next = [...prev];
+          next[0] = { ...next[0], area: String(baseArea) };
+          return next;
+        }
+        return prev;
+      });
+    }
+  }, [baseArea]);
+
+  // Step-2 completeness: every created floor must have a valid area.
+  const incompleteFloors = useMemo(() => {
+    return floors.slice(0, storeys + 1)
+      .map((f, i) => (parseFloat(f.area) > 0 ? -1 : i))
+      .filter((i) => i >= 0);
+  }, [floors, storeys]);
+  const step2Complete = totalArea > 0 && incompleteFloors.length === 0;
+
   const wantsElevation = useMemo(
     () => services.some((s) => s.triggers_elevation && selected.includes(s.code)),
     [services, selected]
@@ -118,7 +151,7 @@ export default function RequirementForm({ onClose }) {
     setErr("");
     const idx = STEPS.indexOf(step);
     if (step === 1 && selected.length === 0) return setErr("Select at least one service.");
-    if (step === 2 && totalArea <= 0) return setErr("Enter built-up area for at least one floor.");
+    if (step === 2 && !step2Complete) return setErr("Enter built-up area for every floor.");
     if (step === 3 && !address) return setErr("Select your project location.");
     if (step === 4 && !construction.need) return setErr("Please tell us about your construction interest.");
     if (step === 6 && !elevation.style) return setErr("Select an elevation style.");
@@ -184,6 +217,7 @@ export default function RequirementForm({ onClose }) {
   // CTA config
   let ctaLabel = "Next", ctaAction = goNext, ctaDisabled = false, secondary = null, ctaIcon = null;
   if (step === 1) ctaLabel = "Continue";
+  if (step === 2) ctaDisabled = !step2Complete;
   if (step === 7) {
     ctaLabel = "Continue With This Project"; ctaAction = () => setStep(8);
     secondary = { label: "Edit Requirement", action: () => setStep(1) };
@@ -271,7 +305,7 @@ export default function RequirementForm({ onClose }) {
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-xl grid place-items-center bd-card-surface">
-                  <ClipboardList className="w-5 h-5 bd-req-accent" />
+                  <ClipboardList className="w-5 h-5 text-[var(--text-primary)]" />
                 </div>
                 <div>
                   <p className="bd-eyebrow">BDesigner</p>
@@ -328,6 +362,11 @@ export default function RequirementForm({ onClose }) {
                         onChange={(v) => setDims({ ...dims, [k]: v })} />
                     ))}
                   </div>
+                  {baseArea > 0 && (
+                    <div className="mt-3 text-sm font-medium text-[var(--text-secondary)]" data-testid="req-base-area">
+                      Calculated plot footprint: <span className="font-bold text-[var(--text-primary)]">≈ {baseArea.toLocaleString("en-IN")} sq.ft.</span>
+                    </div>
+                  )}
                 </ReqCard>
                 <ReqCard title="Add Your Storey" subtitle="Ground + additional floors">
                   <div className="bd-card-surface flex items-center justify-between rounded-xl px-3 py-2">
@@ -337,13 +376,16 @@ export default function RequirementForm({ onClose }) {
                   </div>
                   <div className="flex gap-3 overflow-x-auto mt-3 hide-scrollbar pb-1" data-testid="req-floor-areas">
                     {Array.from({ length: storeys + 1 }).map((_, i) => (
-                      <div key={i} className="shrink-0 w-[150px] bd-card-surface rounded-xl p-3">
-                        <div className="text-xs text-[var(--text-secondary)] mb-1.5">{floorName(i)}</div>
-                        <ReqField placeholder="Area sq.ft." type="number" inputMode="numeric" value={floors[i]?.area || ""} testid={`req-floor-area-${i}`} onChange={(v) => updFloor(i, { area: v })} />
+                      <div key={i} className="shrink-0 w-[160px] bd-card-surface rounded-xl p-3">
+                        <div className="text-xs text-[var(--text-secondary)] mb-1.5">{floorName(i)}{i === 0 && baseArea > 0 ? " · auto" : ""}</div>
+                        <ReqField placeholder="Area sq.ft." type="number" inputMode="numeric" value={floors[i]?.area || ""} testid={`req-floor-area-${i}`} onChange={(v) => { if (i === 0) autoGfRef.current = null; updFloor(i, { area: v }); }} />
+                        {incompleteFloors.includes(i) && (
+                          <div className="mt-1.5 text-[11px] font-medium" style={{ color: "var(--status-warning)" }} data-testid={`req-floor-error-${i}`}>Enter built-up area for this floor.</div>
+                        )}
                       </div>
                     ))}
                   </div>
-                  <div className="mt-3 text-sm font-semibold text-[var(--text-primary)]" data-testid="req-total-area">Total Built-up Area: <span className="bd-req-accent">{totalArea.toLocaleString("en-IN")} sq.ft.</span></div>
+                  <div className="mt-3 text-sm font-semibold text-[var(--text-primary)]" data-testid="req-total-area">Total Built-up Area: <span className="text-[var(--text-primary)]">{totalArea.toLocaleString("en-IN")} sq.ft.</span></div>
                 </ReqCard>
                 <ReqCard title="Project Name">
                   <ReqField placeholder="e.g. Sharma Residence" value={projectName} testid="req-project-name" onChange={setProjectName} />
@@ -363,26 +405,25 @@ export default function RequirementForm({ onClose }) {
             {step === 3 && (
               !showAddrPicker ? (
                 <>
-                  <div className="rounded-2xl overflow-hidden aspect-[16/9] bg-cover bg-center bd-card-surface" style={{ backgroundImage: "url(https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=900&q=70)" }} />
-                  <ReqCard title="Select your location" right={<button onClick={() => setShowAddrPicker(true)} data-testid="req-change-location" className="text-sm font-semibold bd-req-accent">Change →</button>}>
+                  <ReqCard title="Select your location" right={<button onClick={() => setShowAddrPicker(true)} data-testid="req-change-location" className="text-sm font-semibold text-[var(--text-primary)] underline underline-offset-4 decoration-[var(--border-strong)]">Change →</button>}>
                     {address ? (
-                      <div className="flex items-start gap-2"><MapPin className="w-4 h-4 bd-req-accent mt-0.5" /><div className="text-sm font-semibold text-[var(--text-primary)]">{address.label}</div></div>
+                      <div className="flex items-start gap-2"><MapPin className="w-4 h-4 text-[var(--text-secondary)] mt-0.5" /><div className="text-sm font-semibold text-[var(--text-primary)]">{address.label}</div></div>
                     ) : <div className="text-sm text-[var(--text-secondary)]">No location selected yet.</div>}
                     {serviceable !== null && (
                       <div className={`mt-3 text-xs font-semibold px-2.5 py-1.5 rounded-lg inline-block`} style={{ background: "var(--surface-secondary)", border: "1px solid var(--border-primary)", color: serviceable ? "var(--status-success)" : "var(--status-warning)" }}>
-                        {serviceable ? "Construction Available" : "Construction coming soon — architecture continues"}
+                        {serviceable ? "Construction Available" : "Construction Not Available Yet — architecture continues"}
                       </div>
                     )}
                   </ReqCard>
                 </>
               ) : (
                 <div data-testid="req-address-picker">
-                  <button onClick={() => setShowAddrPicker(false)} className="flex items-center gap-2 text-sm mb-3 text-[var(--text-primary)]"><ArrowLeft className="w-4 h-4" /> Back to map</button>
+                  <button onClick={() => setShowAddrPicker(false)} className="flex items-center gap-2 text-sm mb-3 text-[var(--text-primary)]"><ArrowLeft className="w-4 h-4" /> Back</button>
                   <div className="space-y-2">
                     {serviceAreas.map((a) => (
                       <button key={a.id} data-testid={`req-area-${a.id}`} onClick={() => { setAddress(a); setServiceable(true); setShowAddrPicker(false); }}
                         className="bd-req-pick w-full flex items-start gap-3 p-3.5 rounded-xl text-left">
-                        <MapPin className="w-4 h-4 bd-req-accent mt-0.5" /><div className="text-sm font-semibold text-[var(--text-primary)]">{a.label}</div>
+                        <MapPin className="w-4 h-4 text-[var(--text-secondary)] mt-0.5" /><div className="text-sm font-semibold text-[var(--text-primary)]">{a.label}</div>
                       </button>
                     ))}
                     <button data-testid="req-area-other" onClick={() => { setAddress({ label: "Other location" }); setServiceable(false); setShowAddrPicker(false); }}
@@ -401,8 +442,8 @@ export default function RequirementForm({ onClose }) {
                   <ReqSegmented options={["Yes", "No"]} value={construction.vastu} onChange={(v) => setConstruction({ ...construction, vastu: v })} testid="req-vastu" />
                 </ReqCard>
                 <ReqCard title="Front facing">
-                  <div className="grid grid-cols-4 gap-2">{FACINGS.map((f) => (
-                    <button key={f} data-testid={`req-facing-${f}`} onClick={() => setConstruction({ ...construction, facing: f })} className={`bd-req-seg ${construction.facing === f ? "bd-req-seg--on" : ""} text-xs py-2 rounded-lg`}>{f}</button>
+                  <div className="grid grid-cols-2 gap-2.5">{FACINGS.map((f) => (
+                    <button key={f} data-testid={`req-facing-${f}`} onClick={() => setConstruction({ ...construction, facing: f })} className={`bd-req-seg ${construction.facing === f ? "bd-req-seg--on" : ""} text-sm font-semibold min-h-[52px] px-3 rounded-xl`}>{f}</button>
                   ))}</div>
                 </ReqCard>
                 <ReqCounter label="Family Members" value={construction.family} onChange={(v) => setConstruction({ ...construction, family: v })} testid="req-family" />
@@ -419,9 +460,9 @@ export default function RequirementForm({ onClose }) {
                   ))}
                 </div>
                 <ReqCard title="Purpose of this floor">
-                  <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1" data-testid="req-purpose">
+                  <div className="grid grid-cols-2 gap-2.5" data-testid="req-purpose">
                     {PURPOSES.map((p) => (
-                      <button key={p} onClick={() => updFloor(activeFloor, { purpose: p })} className={`bd-req-chip ${floors[activeFloor]?.purpose === p ? "bd-req-chip--on" : ""} shrink-0 px-3.5 py-2 rounded-full text-xs font-semibold`}>{p}</button>
+                      <button key={p} onClick={() => updFloor(activeFloor, { purpose: p })} className={`bd-req-seg ${floors[activeFloor]?.purpose === p ? "bd-req-seg--on" : ""} min-h-[54px] px-3 rounded-xl text-sm font-semibold`}>{p}</button>
                     ))}
                   </div>
                 </ReqCard>
@@ -482,17 +523,20 @@ export default function RequirementForm({ onClose }) {
 
             {step === 8 && (
               <div className="space-y-3" data-testid="req-registration">
-                <button disabled className="bd-req-ghost w-full flex items-center justify-center gap-2 py-3 rounded-xl opacity-55 cursor-not-allowed" title="Not configured">
-                  Continue with Google
+                <button
+                  data-testid="req-google-btn"
+                  onClick={() => toast.info("Google sign-in isn't connected yet — please continue with email below.")}
+                  className="w-full flex items-center justify-center gap-3 py-3.5 rounded-xl font-semibold text-[15px] transition"
+                  style={{ background: "#FFFFFF", color: "#111111", border: "1px solid #DADCE0", boxShadow: "0 1px 3px rgba(0,0,0,0.12)" }}
+                >
+                  <GoogleIcon className="w-5 h-5" />
+                  <span style={{ color: "#111111", WebkitTextFillColor: "#111111" }}>Continue with Google</span>
                 </button>
                 <div className="flex items-center gap-2 text-[11px] text-[var(--text-secondary)]"><span className="flex-1 h-px" style={{ background: "var(--border-primary)" }} />or continue with email<span className="flex-1 h-px" style={{ background: "var(--border-primary)" }} /></div>
                 <ReqField placeholder="Full Name" value={reg.name} testid="req-reg-name" onChange={(v) => setReg({ ...reg, name: v })} />
                 <ReqField placeholder="Mobile Number (10 digits)" value={reg.mobile} inputMode="numeric" testid="req-reg-mobile" onChange={(v) => setReg({ ...reg, mobile: v.replace(/[^\d]/g, "") })} />
                 <ReqField placeholder="Email" type="email" value={reg.email} testid="req-reg-email" onChange={(v) => setReg({ ...reg, email: v })} icon={<Mail className="w-4 h-4" />} />
                 {!user?.id && <ReqField placeholder="Password (min 6)" type="password" value={reg.password} testid="req-reg-password" onChange={(v) => setReg({ ...reg, password: v })} />}
-                <button disabled className="bd-req-ghost w-full flex items-center justify-center gap-2 py-3 rounded-xl opacity-55 cursor-not-allowed" data-testid="req-phone-disabled">
-                  <PhoneIcon className="w-4 h-4" /> Continue with Phone <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: "var(--surface-secondary)" }}>Coming Soon</span>
-                </button>
                 {/* mobile: show the create button inline too */}
                 <div className="lg:hidden pt-1"><CtaButtons full /></div>
               </div>
@@ -501,13 +545,19 @@ export default function RequirementForm({ onClose }) {
 
           {/* Mobile footer bar */}
           {step !== 8 && (
-            <div className="lg:hidden shrink-0 border-t p-4 flex items-center justify-between gap-3" style={{ borderColor: "var(--border-divider)", background: "var(--background-secondary)" }}>
-              <div>
-                <div className="text-[10px] uppercase tracking-wider text-[var(--text-secondary)]">Est. Charges</div>
-                <div className="text-base font-bold bd-req-accent" data-testid="req-price-bar">{rupee(total)}</div>
+            step === 7 ? (
+              <div className="lg:hidden shrink-0 border-t p-4" style={{ borderColor: "var(--border-divider)", background: "var(--background-secondary)" }}>
+                <CtaButtons full />
               </div>
-              <div className={secondary ? "flex-1" : ""}><CtaButtons /></div>
-            </div>
+            ) : (
+              <div className="lg:hidden shrink-0 border-t p-4 flex items-center justify-between gap-3" style={{ borderColor: "var(--border-divider)", background: "var(--background-secondary)" }}>
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-[var(--text-secondary)]">Est. Charges</div>
+                  <div className="text-base font-bold bd-req-accent" data-testid="req-price-bar">{rupee(total)}</div>
+                </div>
+                <div className={secondary ? "flex-1" : ""}><CtaButtons /></div>
+              </div>
+            )
           )}
         </div>
 
