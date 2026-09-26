@@ -47,3 +47,4 @@
 - hero-portrait.mp4 replaced with new mobile hero video (14.6 MB, served 200); landscape unchanged until user provides it
 - Theme-based logo swap: white logo on dark theme, red logo on light theme (Navbar + Footer); intro keeps white logo; old CSS brightness(0) filter approach replaced with bd-logo-light/bd-logo-dark display toggles
 - settings.logo_light=/bdesigner-logo-red.png, logo_dark=/bdesigner-logo-white.png (admin-config foundation)
+- Footer aligned to frozen nav: Company (About Us, Contact Us), Explore (Projects, How It Works, FAQs), Get Started (Plan Your Dream Home, Get BDesigner App, Login), Legal unchanged; legacy links (Our Packages, Cost Calculator, Architectural Services, Testimonials) removed; same honest behaviors as navbar (coming-soon toasts, lead modal, PWA guidance)
