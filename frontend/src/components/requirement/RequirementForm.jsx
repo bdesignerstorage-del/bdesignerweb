@@ -106,6 +106,14 @@ export default function RequirementForm({ onClose }) {
     return base;
   }, [wantsElevation]);
 
+  // Keep `step` valid if the elevation step appears/disappears (avoids a stuck state).
+  useEffect(() => {
+    if (!STEPS.includes(step)) {
+      const fallback = [...STEPS].reverse().find((s) => s < step) || STEPS[0];
+      setStep(fallback);
+    }
+  }, [STEPS, step]);
+
   const goNext = () => {
     setErr("");
     const idx = STEPS.indexOf(step);

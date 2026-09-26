@@ -56,3 +56,17 @@
 - Registration reuses existing auth register(); phone auth shown DISABLED (Coming Soon); Google disabled (no OAuth configured). Lead attaches client_user_id after register.
 - Verified smoke test full flow at 1440: pricing 3600sqft -> Arch ₹43,200 + 3D ₹28,800 = ₹72,000; serviceability Available; summary + Edit/Continue.
 - NOT built (per instructions): Client Dashboard, Admin/PM/panels. File upload is local draft only (no storage configured yet).
+
+## 2026-06 — Requirement Form UI/UX Deep Fix (Message 208) — DONE, tested 100% (iteration_3.json)
+- Rebuilt the "Plan Your Dream Home" Requirement Form to premium BDesigner DNA, fully theme-aware (light/dark) with gold #C9A24A accents that survive the global monochrome neutralizer.
+- Wide 2-COLUMN desktop layout: form (left ~60%) + sticky live "Your Project" summary panel (right ~40%, specs + live price + primary CTA). Single-column full-screen sheet on mobile with a sticky bottom price bar + gold CTA.
+- Componentized into reusable primitives in `/app/frontend/src/components/requirement/primitives.jsx`: ReqCard, ReqField, ReqSegmented, ReqCounter, ReqChips, ReqImageCard, ReqRow + ELEV_IMAGES map + rupee().
+- Services + Elevation now use IMAGE CARDS (gold check + gold border on select). 4 CUSTOM-GENERATED elevation illustrations (Simple/Modern/Kerala/Classical) hosted on emergent static CDN.
+- Scoped `.bd-req-*` CSS block appended to index.css (token-driven, gold accent, 2-col shell, image pick cards, segmented/chip/field/CTA). All 9-step logic (pricing, serviceability, autosave, conditional elevation, register+submit) preserved.
+- Robustness: added effect that snaps `step` to a valid step if the conditional elevation step is added/removed (prevents stuck state).
+- Verified: full 8-step flow end-to-end (dark), light-theme spot check, mobile 390px entry via drawer; live pricing recompute; elevation images 200; registration creates client account + submits lead + clears draft. No user-facing bugs.
+
+## Backlog (updated)
+- P2 (ergonomic, not user-facing): CtaButtons renders req-next/req-edit/req-create-account in both mobile footer and desktop aside (only one visible per breakpoint). Optionally dedupe testids for cleaner automation.
+- P2: Real file/object storage for Requirement Form uploads (currently local draft only).
+- Deferred by user until form approved: Client Dashboard (post-registration handoff), Admin/PM/Architect/Structural panels, Package Builder, Agreement, Construction Progress, Site Updates.
