@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useLeadModal } from "@/context/LeadModalContext";
+import { useRequirementForm } from "@/context/RequirementFormContext";
 import SearchOverlay from "@/components/SearchOverlay";
 import MobileDrawer from "@/components/MobileDrawer";
 import { ThemeToggleButton } from "@/components/ThemeToggle";
@@ -34,6 +35,7 @@ export default function Navbar() {
   const { user, logout, setAuthOpen, setAuthMode } = useAuth();
   const { settings } = useSettings();
   const { openLeadModal } = useLeadModal();
+  const { openRequirement } = useRequirementForm();
   const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -54,12 +56,7 @@ export default function Navbar() {
   // Plan Your Dream Home → BDesigner requirement entry point. Until the
   // dedicated Requirement Form ships, route through the existing enquiry
   // modal (no new consultation workflow).
-  const openRequirement = () =>
-    openLeadModal({
-      source: "navbar-cta",
-      title: "Plan Your Dream Home",
-      subtitle: "Tell us about your plot and requirements — our team will take it from there.",
-    });
+  const openRequirementCta = () => openRequirement({ source: "navbar-cta" });
 
   // Projects → the approved public project list currently lives on the
   // Homepage "Trending Projects" rail; scroll to it (navigating home first
@@ -150,7 +147,7 @@ export default function Navbar() {
           <button
             type="button"
             data-testid="nav-plan-dream-home-btn"
-            onClick={openRequirement}
+            onClick={openRequirementCta}
             className={`${overHero ? "btn-outline-white" : "btn-gold-metallic"} inline-flex items-center gap-2 h-10 px-4 rounded-full font-semibold text-sm mr-1 border border-white/40`}
           >
             <ClipboardList className="w-[20px] h-[20px]" strokeWidth={1.75} />

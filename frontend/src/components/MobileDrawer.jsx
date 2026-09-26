@@ -10,6 +10,7 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { useLeadModal } from "@/context/LeadModalContext";
+import { useRequirementForm } from "@/context/RequirementFormContext";
 import { ThemeSegmented } from "@/components/ThemeToggle";
 
 /**
@@ -31,6 +32,7 @@ import { ThemeSegmented } from "@/components/ThemeToggle";
 export default function MobileDrawer({ open, onClose, onOpenSearch }) {
   const { user, logout, setAuthOpen, setAuthMode } = useAuth();
   const { openLeadModal } = useLeadModal();
+  const { openRequirement } = useRequirementForm();
   const [entered, setEntered] = useState(false);
   const startXRef = useRef(null);
   const installPromptRef = useRef(null);
@@ -86,13 +88,9 @@ export default function MobileDrawer({ open, onClose, onOpenSearch }) {
 
   // Plan Your Dream Home → requirement entry point (existing enquiry modal
   // until the dedicated Requirement Form ships).
-  const openRequirement = () => {
+  const openRequirementCta = () => {
     onClose?.();
-    setTimeout(() => openLeadModal({
-      source: "mobile_drawer",
-      title: "Plan Your Dream Home",
-      subtitle: "Tell us about your plot and requirements — our team will take it from there.",
-    }), 220);
+    setTimeout(() => openRequirement({ source: "mobile_drawer" }), 220);
   };
   const openLogin = () => {
     onClose?.();
@@ -216,7 +214,7 @@ export default function MobileDrawer({ open, onClose, onOpenSearch }) {
 
           {/* GET STARTED */}
           <Section title="GET STARTED">
-            <MenuAction onClick={openRequirement} icon={ClipboardList} label="Plan Your Dream Home" testid="drawer-plan-dream-home" tone="gold" />
+            <MenuAction onClick={openRequirementCta} icon={ClipboardList} label="Plan Your Dream Home" testid="drawer-plan-dream-home" tone="gold" />
             <MenuAction onClick={getApp} icon={Smartphone} label="Get BDesigner App" testid="drawer-get-app" />
             {isLoggedIn ? (
               <>

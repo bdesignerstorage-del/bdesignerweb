@@ -7,6 +7,7 @@ import {
 import { toast } from "sonner";
 import { useSettings } from "@/context/SettingsContext";
 import { useLeadModal } from "@/context/LeadModalContext";
+import { useRequirementForm } from "@/context/RequirementFormContext";
 import { useAuth } from "@/context/AuthContext";
 
 const PLATFORM_META = {
@@ -21,6 +22,7 @@ const PLATFORM_META = {
 export default function Footer() {
   const { settings } = useSettings();
   const { openLeadModal } = useLeadModal();
+  const { openRequirement } = useRequirementForm();
   const { user, setAuthOpen, setAuthMode } = useAuth();
   const loc = useLocation();
   const navigate = useNavigate();
@@ -63,13 +65,9 @@ export default function Footer() {
     }, 150);
   };
 
-  const openRequirement = (e) => {
+  const openRequirement2 = (e) => {
     e.preventDefault();
-    openLeadModal({
-      source: "footer-cta",
-      title: "Plan Your Dream Home",
-      subtitle: "Tell us about your plot and requirements — our team will take it from there.",
-    });
+    openRequirement({ source: "footer-cta" });
   };
 
   const getApp = (e) => {
@@ -191,7 +189,7 @@ export default function Footer() {
         <FooterCol
           title="Get Started"
           links={[
-            { name: "Plan Your Dream Home", to: "/plan", onClick: openRequirement },
+            { name: "Plan Your Dream Home", to: "/plan", onClick: openRequirement2 },
             { name: "Get BDesigner App", to: "/app", onClick: getApp },
             ...(!isLoggedIn ? [{ name: "Login", to: "/login", onClick: openLogin }] : []),
           ]}

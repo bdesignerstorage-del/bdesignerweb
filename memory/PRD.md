@@ -48,3 +48,11 @@
 - Theme-based logo swap: white logo on dark theme, red logo on light theme (Navbar + Footer); intro keeps white logo; old CSS brightness(0) filter approach replaced with bd-logo-light/bd-logo-dark display toggles
 - settings.logo_light=/bdesigner-logo-red.png, logo_dark=/bdesigner-logo-white.png (admin-config foundation)
 - Footer aligned to frozen nav: Company (About Us, Contact Us), Explore (Projects, How It Works, FAQs), Get Started (Plan Your Dream Home, Get BDesigner App, Login), Legal unchanged; legacy links (Our Packages, Cost Calculator, Architectural Services, Testimonials) removed; same honest behaviors as navbar (coming-soon toasts, lead modal, PWA guidance)
+
+## 2026-09-26 — Requirement Form (replaces old enquiry modal)
+- New multi-step BDesigner Requirement Form (RequirementForm.jsx + RequirementFormContext) opens from ALL "Plan Your Dream Home" CTAs (navbar, mobile drawer, sticky CTA, footer). Old LeadModal retired from these entry points (still used by other homepage advisor CTAs).
+- 8 steps: Services -> Project/Area -> Serviceability -> Construction Req -> Room-per-floor -> Elevation(conditional on 3D) -> Summary -> Registration. Autosave to localStorage; Back preserves data; conditional elevation step.
+- Backend (server.py): service_catalog seed + GET /api/requirement/services, POST /api/requirement/price (authoritative: per_sqft=max(area*rate,min), free, fixed), GET /api/requirement/serviceability (from service_area blocks), POST /api/requirement/submit (persists lead + requirement + pricing snapshot to db.leads).
+- Registration reuses existing auth register(); phone auth shown DISABLED (Coming Soon); Google disabled (no OAuth configured). Lead attaches client_user_id after register.
+- Verified smoke test full flow at 1440: pricing 3600sqft -> Arch ₹43,200 + 3D ₹28,800 = ₹72,000; serviceability Available; summary + Edit/Continue.
+- NOT built (per instructions): Client Dashboard, Admin/PM/panels. File upload is local draft only (no storage configured yet).

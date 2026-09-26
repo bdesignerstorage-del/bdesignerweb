@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { ClipboardList } from "lucide-react";
 import { useLeadModal } from "@/context/LeadModalContext";
+import { useRequirementForm } from "@/context/RequirementFormContext";
 
 /**
  * BDStickyCta — mobile-only fixed "Plan Your Dream Home" bar.
@@ -14,6 +15,7 @@ import { useLeadModal } from "@/context/LeadModalContext";
  */
 export default function BDStickyCta() {
   const { openLeadModal } = useLeadModal();
+  const { openRequirement } = useRequirementForm();
   const loc = useLocation();
   const hide = /^\/materials\/[^/]+$/.test(loc.pathname);
   const [atFooter, setAtFooter] = useState(false);
@@ -59,13 +61,7 @@ export default function BDStickyCta() {
         type="button"
         className="bd-sticky-cta__btn"
         data-testid="bd-sticky-cta-btn"
-        onClick={() =>
-          openLeadModal({
-            source: "mobile_sticky_cta",
-            title: "Plan Your Dream Home",
-            subtitle: "Tell us about your plot and requirements — our team will take it from there.",
-          })
-        }
+        onClick={() => openRequirement({ source: "mobile_sticky_cta" })}
       >
         <ClipboardList className="w-[18px] h-[18px]" />
         Plan Your Dream Home

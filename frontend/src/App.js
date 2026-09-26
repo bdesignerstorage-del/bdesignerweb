@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/context/ThemeContext";
 import { SettingsProvider } from "@/context/SettingsContext";
 import { LeadModalProvider } from "@/context/LeadModalContext";
 import { HeroModeProvider } from "@/context/HeroModeContext";
+import { RequirementFormProvider } from "@/context/RequirementFormContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import AuthModal from "@/components/AuthModal";
@@ -78,6 +79,7 @@ function App() {
           <SettingsProvider>
             <AuthProvider>
               <LeadModalProvider>
+                <RequirementFormProvider>
                 <HeroModeProvider>
                 <ChromeFrame>
                   <Routes>
@@ -94,6 +96,7 @@ function App() {
                   </Routes>
                 </ChromeFrame>
                 </HeroModeProvider>
+                </RequirementFormProvider>
                 <AuthModal />
                 <Toaster position="bottom-center" />
               </LeadModalProvider>

@@ -443,6 +443,117 @@ async def track_click(payload: TrackIn, request: Request):
     return {"ok": True}
 
 
+# Approved architectural service catalog with authoritative pricing.
+# pricing_type: per_sqft | fixed | free. per_sqft = max(area*rate, minimum_charge).
+DEFAULT_SERVICE_CATALOG = [
+    {"code": "estimation",   "name": "Estimation Sheet",    "pricing_type": "free",     "rate": 0,  "minimum_charge": 0,    "image": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=600&q=70", "triggers_elevation": False, "sort_order": 0},
+    {"code": "architectural","name": "Architectural Plan",  "pricing_type": "per_sqft", "rate": 12, "minimum_charge": 5000, "image": "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=600&q=70", "triggers_elevation": False, "sort_order": 1},
+    {"code": "elevation_3d", "name": "3D Elevation Design",  "pricing_type": "per_sqft", "rate": 8,  "minimum_charge": 4000, "image": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=70", "triggers_elevation": True,  "sort_order": 2},
+    {"code": "interior",     "name": "Interior Design",      "pricing_type": "per_sqft", "rate": 40, "minimum_charge": 15000,"image": "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=600&q=70", "triggers_elevation": False, "sort_order": 3},
+    {"code": "structural",   "name": "Structural Design",    "pricing_type": "per_sqft", "rate": 10, "minimum_charge": 5000, "image": "https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=600&q=70", "triggers_elevation": False, "sort_order": 4},
+    {"code": "electrical",   "name": "Electrical Design",    "pricing_type": "per_sqft", "rate": 6,  "minimum_charge": 3000, "image": "https://images.unsplash.com/photo-1565608087341-404b25492fee?auto=format&fit=crop&w=600&q=70", "triggers_elevation": False, "sort_order": 5},
+    {"code": "plumbing",     "name": "Plumbing Design",      "pricing_type": "per_sqft", "rate": 6,  "minimum_charge": 3000, "image": "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=600&q=70", "triggers_elevation": False, "sort_order": 6},
+]
+
+
+async def seed_service_catalog() -> None:
+    if await db.service_catalog.count_documents({}) > 0:
+        return
+    docs = [{"id": str(uuid.uuid4()), "active": True, "included_revisions": 2, "created_at": now_iso(), **s}
+            for s in DEFAULT_SERVICE_CATALOG]
+    await db.service_catalog.insert_many(docs)
+
+
+def _service_charge(svc: dict, area: float) -> float:
+    ptype = svc.get("pricing_type")
+    rate = float(svc.get("rate") or 0)
+    if ptype == "free":
+        return 0.0
+    if ptype == "fixed":
+        return rate
+    return max(area * rate, float(svc.get("minimum_charge") or 0))
+
+
+class RequirementPriceIn(BaseModel):
+    service_codes: list = []
+    total_area: float = 0
+
+
+class RequirementSubmitIn(BaseModel):
+    name: Optional[str] = ""
+    mobile: Optional[str] = ""
+    email: Optional[str] = ""
+    project_name: Optional[str] = ""
+    service_codes: list = []
+    total_area: float = 0
+    requirement: dict = {}
+    source: Optional[str] = "plan-your-dream-home"
+
+
+@api.get("/requirement/services")
+async def requirement_services():
+    rows = await db.service_catalog.find({"active": {"$ne": False}}, {"_id": 0}).sort("sort_order", 1).to_list(50)
+    return {"services": rows}
+
+
+@api.post("/requirement/price")
+async def requirement_price(payload: RequirementPriceIn):
+    area = max(0.0, float(payload.total_area or 0))
+    rows = await db.service_catalog.find({"code": {"$in": payload.service_codes}}, {"_id": 0}).to_list(50)
+    lines, total = [], 0.0
+    for svc in rows:
+        amt = _service_charge(svc, area)
+        total += amt
+        lines.append({"code": svc["code"], "name": svc["name"], "pricing_type": svc["pricing_type"],
+                      "rate": svc.get("rate", 0), "applicable_area": area, "amount": round(amt, 2)})
+    return {"lines": lines, "total": round(total, 2), "area": area}
+
+
+@api.get("/requirement/serviceability")
+async def requirement_serviceability(area: str = ""):
+    term = (area or "").strip().lower()
+    rows = await db.homepage_blocks.find({"section": "service_area", "hidden": {"$ne": True}}, {"_id": 0}).to_list(200)
+    areas = [{"id": r["id"], "label": r.get("label") or r.get("title")} for r in rows]
+    serviceable = any(term and term in (a["label"] or "").lower() for a in areas) if term else False
+    return {"serviceable": serviceable, "areas": areas,
+            "message": "Construction Available" if serviceable else "Construction Not Available Yet"}
+
+
+@api.post("/requirement/submit")
+async def requirement_submit(payload: RequirementSubmitIn, request: Request):
+    area = max(0.0, float(payload.total_area or 0))
+    rows = await db.service_catalog.find({"code": {"$in": payload.service_codes}}, {"_id": 0}).to_list(50)
+    services_snapshot, total = [], 0.0
+    for svc in rows:
+        amt = _service_charge(svc, area)
+        total += amt
+        services_snapshot.append({"service_id": svc["id"], "code": svc["code"], "name": svc["name"],
+                                  "pricing_type": svc["pricing_type"], "rate_snapshot": svc.get("rate", 0),
+                                  "applicable_area": area, "calculated_amount": round(amt, 2),
+                                  "included_revisions": svc.get("included_revisions", 0)})
+    user = await current_user_optional(request)
+    lead_id = str(uuid.uuid4())
+    doc = {
+        "id": lead_id,
+        "name": (payload.name or "").strip(),
+        "mobile": re.sub(r"\D", "", payload.mobile or ""),
+        "email": (payload.email or "").strip().lower(),
+        "project_name": (payload.project_name or "").strip(),
+        "source": payload.source or "plan-your-dream-home",
+        "client_user_id": user.get("id") if user else None,
+        "registration_status": "registered" if user else "draft",
+        "total_architectural_charge": round(total, 2),
+        "selected_services": services_snapshot,
+        "requirement": payload.requirement or {},
+        "status": "new",
+        "created_at": now_iso(),
+        "updated_at": now_iso(),
+    }
+    await db.leads.insert_one(doc.copy())
+    return {"ok": True, "lead_id": lead_id, "total": round(total, 2)}
+
+
+
 SEED_PORTFOLIO_PROJECTS = [
     {"title": "Skyline Residence", "style": "Modern", "tag": "Featured", "budget": "₹1.2 Cr", "location": "Whitefield, Bengaluru", "category": "residential",
      "cover": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1000&q=75",
@@ -503,6 +614,10 @@ async def startup_seed_homepage():
         pass
     try:
         await seed_portfolio_projects()
+    except Exception:
+        pass
+    try:
+        await seed_service_catalog()
     except Exception:
         pass
 
