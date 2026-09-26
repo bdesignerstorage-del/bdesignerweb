@@ -2614,3 +2614,55 @@ html[data-theme="dark"] body:not(.bd-theme) .bd-bottom-nav {
   transition-delay: 0s !important;
 }
 
+
+
+/* ══════════════════════════════════════════════════════════════════
+   THEME-AWARE TOAST (Sonner) — matches docs/design.md §2 tokens.
+   Light: white surface + near-black text + hairline border.
+   Dark : charcoal card surface + warm-white text.
+   Uses the site design tokens so notifications never render dark-on-dark
+   or light-on-light.
+   ══════════════════════════════════════════════════════════════════ */
+.bd-theme-toast__toast {
+  border-radius: 14px !important;
+  font-family: Inter, system-ui, sans-serif !important;
+  font-size: 14px !important;
+}
+html[data-theme="light"] .bd-theme-toast__toast {
+  background: #FFFFFF !important;
+  color: #111111 !important;
+  border: 1px solid #E5E5E5 !important;
+  box-shadow: 0 8px 30px rgba(17, 17, 17, 0.10) !important;
+}
+html[data-theme="light"] .bd-theme-toast__toast [data-icon],
+html[data-theme="light"] .bd-theme-toast__toast svg {
+  color: #111111 !important;
+}
+html[data-theme="light"] .bd-theme-toast__desc { color: #555555 !important; }
+
+html[data-theme="dark"] .bd-theme-toast__toast {
+  background: #151515 !important;
+  color: #F5F5F5 !important;
+  border: 1px solid #292929 !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45) !important;
+}
+html[data-theme="dark"] .bd-theme-toast__toast [data-icon],
+html[data-theme="dark"] .bd-theme-toast__toast svg {
+  color: #F5F5F5 !important;
+}
+html[data-theme="dark"] .bd-theme-toast__desc { color: #B5B5B5 !important; }
+
+.bd-theme-toast__action {
+  background: var(--button-primary, #111) !important;
+  color: var(--button-primary-text, #fff) !important;
+  border-radius: 999px !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   HERO MODE SWITCHER — Construction / Morning / Night buttons.
+   Reduced-motion users get no scale/opacity transition.
+   ══════════════════════════════════════════════════════════════════ */
+.hero-mode-btn { -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+@media (prefers-reduced-motion: reduce) {
+  .hero-mode-btn { transition: none !important; }
+}

@@ -1,20 +1,19 @@
 import React from "react";
+import { useHeroMode } from "@/context/HeroModeContext";
 
 /**
  * BDVideoBackground — fixed full-viewport looping video canvas for the HOME
- * hero background (Fix 1).
+ * hero background.
  *
- * Behaviour (per spec):
- *  - Position: fixed, full viewport, behind ALL page content (z-index:-1).
+ *  - Position: fixed, full viewport, behind ALL page content.
  *  - Landscape video for landscape/desktop, portrait video for mobile/portrait.
  *  - autoplay + loop + muted + playsInline, no controls, no play/pause UI.
- *  - No fade / zoom / parallax / Ken Burns — the footage is shown exactly as-is.
- *  - object-fit:cover keeps aspect ratio (covers viewport without distortion).
+ *  - No fade / zoom / parallax — the footage is shown exactly as-is.
+ *  - object-fit:cover keeps aspect ratio.
  *
- * Only ONE video element is mounted at a time (the one matching the current
- * orientation) so mobile networks aren't asked to download the desktop clip.
- * A matching poster image paints instantly so the correct orientation is shown
- * from the first frame (never the wrong orientation first).
+ * The video element is registered with HeroModeContext so the hero
+ * Construction / Morning / Night buttons can seek it to the admin-configured
+ * timeline points. Sources come from admin-configurable settings.hero.
  */
 const PORTRAIT_QUERY = "(orientation: portrait)";
 
@@ -24,6 +23,7 @@ function getIsPortrait() {
 }
 
 export default function BDVideoBackground() {
+  const { hero, registerVideo } = useHeroMode();
   const [isPortrait, setIsPortrait] = React.useState(getIsPortrait);
   const videoRef = React.useRef(null);
 
@@ -31,7 +31,6 @@ export default function BDVideoBackground() {
     if (typeof window === "undefined" || !window.matchMedia) return undefined;
     const mql = window.matchMedia(PORTRAIT_QUERY);
     const onChange = (e) => setIsPortrait(e.matches);
-    // addEventListener is the modern API; addListener is the legacy fallback.
     if (mql.addEventListener) mql.addEventListener("change", onChange);
     else mql.addListener(onChange);
     return () => {
@@ -40,22 +39,20 @@ export default function BDVideoBackground() {
     };
   }, []);
 
-  const src = isPortrait ? "/hero-portrait.mp4" : "/hero-landscape.mp4";
-  // No poster/fallback image: a static image before the video causes a visible
-  // "image → video" flash on load. The .bd-video-bg dark base (#141009) shows
-  // cleanly until the first video frame paints instead.
+  const src = isPortrait
+    ? (hero.video_portrait || "/hero-portrait.mp4")
+    : (hero.video_landscape || "/hero-landscape.mp4");
 
-  // Guarantee muted autoplay. React doesn't always reflect the `muted` prop to
-  // the DOM attribute, which makes browsers block autoplay — so force it on the
-  // element and kick off play() ourselves (re-runs when the source flips).
+  // Guarantee muted autoplay and register the element for hero seeking.
   React.useEffect(() => {
     const el = videoRef.current;
     if (!el) return undefined;
     el.muted = true;
     el.defaultMuted = true;
+    registerVideo(el);
     const tryPlay = () => {
       const p = el.play();
-      if (p && typeof p.catch === "function") p.catch(() => { /* autoplay guard */ });
+      if (p && typeof p.catch === "function") p.catch(() => {});
     };
     tryPlay();
     el.addEventListener("canplay", tryPlay);
@@ -64,13 +61,12 @@ export default function BDVideoBackground() {
       el.removeEventListener("canplay", tryPlay);
       el.removeEventListener("loadeddata", tryPlay);
     };
-  }, [src]);
+  }, [src, registerVideo]);
 
   return (
     <div className="bd-video-bg" aria-hidden="true" data-testid="bd-video-bg">
       <video
         ref={videoRef}
-        // key forces a fresh element (and correct source load) on orientation flip
         key={src}
         className="bd-video-bg__media"
         src={src}

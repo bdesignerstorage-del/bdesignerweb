@@ -6,6 +6,7 @@ import {
   BadgeIndianRupee, Clock, UserCheck, ScrollText,
   Wallet, Calculator, PackageSearch, CalendarClock, Map,
   Sparkles, Hammer, Building2, Ruler, PaintBucket, Zap, Droplet, TreePine,
+  Users, PencilRuler, Sun, Sunrise, Moon, CloudSun,
 } from "lucide-react";
 
 const MAP = {
@@ -14,6 +15,7 @@ const MAP = {
   BadgeIndianRupee, Clock, UserCheck, ScrollText,
   Wallet, Calculator, PackageSearch, CalendarClock, Map,
   Sparkles, Hammer, Building2, Ruler, PaintBucket, Zap, Droplet, TreePine,
+  Users, PencilRuler, Sun, Sunrise, Moon, CloudSun,
 };
 
 export const ICON_NAMES = Object.keys(MAP);

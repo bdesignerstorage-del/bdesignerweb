@@ -241,6 +241,22 @@ DEFAULT_SETTINGS = {
     "logo_mobile": "/bdesigner-logo-trim.png",
     "logo_footer": "/bdesigner-logo-white.png",
     "favicon": "/bdesigner-logo-trim.png",
+    # Admin-configurable hero timeline. `states[].timestamp` is the second in
+    # the hero video where each mode begins; `theme` drives the site theme when
+    # that mode is selected. A future Website CMS "Homepage → Hero" tab can
+    # PATCH this object into db.site_settings without any frontend rework.
+    "hero": {
+        "video_landscape": "/hero-landscape.mp4",
+        "video_portrait": "/hero-portrait.mp4",
+        "logo": "/bdesigner-logo-white.png",
+        "total_duration": 23,
+        "default_state": "construction",
+        "states": [
+            {"key": "construction", "label": "Construction", "icon": "HardHat", "timestamp": 0,  "theme": "light"},
+            {"key": "morning",      "label": "Morning",      "icon": "Sunrise", "timestamp": 19, "theme": "light"},
+            {"key": "night",        "label": "Night",        "icon": "Moon",    "timestamp": 22, "theme": "dark"},
+        ],
+    },
     "footer": {
         "about_text": "India's trusted architecture and turnkey construction platform.",
         "contact": {"email": "hello@bdesigner.com", "phone": "", "address": "India"},
@@ -427,6 +443,56 @@ async def track_click(payload: TrackIn, request: Request):
     return {"ok": True}
 
 
+SEED_PORTFOLIO_PROJECTS = [
+    {"title": "Skyline Residence", "style": "Modern", "tag": "Featured", "budget": "₹1.2 Cr", "location": "Whitefield, Bengaluru", "category": "residential",
+     "cover": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1000&q=75",
+     "description": "A contemporary 4BHK with clean lines, double-height living and a landscaped courtyard.", "views": 2140, "shares": 86},
+    {"title": "Courtyard House", "style": "Contemporary", "tag": "New", "budget": "₹95 L", "location": "JP Nagar, Bengaluru", "category": "residential",
+     "cover": "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1000&q=75",
+     "description": "A vastu-aligned home built around a central courtyard for natural light and ventilation.", "views": 1875, "shares": 64},
+    {"title": "Terracotta Villa", "style": "Tropical", "tag": "", "budget": "₹1.5 Cr", "location": "Sarjapur Road, Bengaluru", "category": "residential",
+     "cover": "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=1000&q=75",
+     "description": "Warm terracotta finishes, deep verandahs and a green roof designed for the Bengaluru climate.", "views": 1620, "shares": 51},
+    {"title": "Glass & Stone Duplex", "style": "Minimal", "tag": "", "budget": "₹1.1 Cr", "location": "HSR Layout, Bengaluru", "category": "residential",
+     "cover": "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1000&q=75",
+     "description": "A minimal duplex pairing exposed stone with full-height glazing and a floating staircase.", "views": 1490, "shares": 47},
+    {"title": "Hillside Retreat", "style": "Modern", "tag": "Featured", "budget": "₹2.0 Cr", "location": "Yelahanka, Bengaluru", "category": "residential",
+     "cover": "https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=1000&q=75",
+     "description": "A split-level home stepping down the slope, with cantilevered decks and panoramic views.", "views": 2320, "shares": 92},
+    {"title": "Urban Compact Home", "style": "Contemporary", "tag": "", "budget": "₹78 L", "location": "Indiranagar, Bengaluru", "category": "residential",
+     "cover": "https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?auto=format&fit=crop&w=1000&q=75",
+     "description": "A smart 30x40 plot design maximising space with a jaali facade and rooftop garden.", "views": 1310, "shares": 39},
+]
+
+
+async def seed_portfolio_projects() -> None:
+    """Idempotent — seeds public portfolio projects so the Homepage Trending
+    Projects rail and Public Project Detail render on a fresh install."""
+    if await db.projects.count_documents({}) > 0:
+        return
+    docs = []
+    for i, p in enumerate(SEED_PORTFOLIO_PROJECTS):
+        docs.append({
+            "id": str(uuid.uuid4()),
+            "title": p["title"],
+            "style": p["style"],
+            "tag": p.get("tag") or "",
+            "budget": p["budget"],
+            "location": p["location"],
+            "category": p.get("category") or "residential",
+            "cover": p["cover"],
+            "gallery": [p["cover"]],
+            "description": p["description"],
+            "views": p.get("views") or 0,
+            "shares": p.get("shares") or 0,
+            "comments": 0,
+            "is_deleted": False,
+            "order": i,
+            "created_at": now_iso(),
+        })
+    await db.projects.insert_many(docs)
+
+
 @app.on_event("startup")
 async def startup_seed_homepage():
     try:
@@ -434,6 +500,10 @@ async def startup_seed_homepage():
     except Exception:
         # Existing production databases already contain homepage content; a
         # seed failure must not block the public website from starting.
+        pass
+    try:
+        await seed_portfolio_projects()
+    except Exception:
         pass
 
 

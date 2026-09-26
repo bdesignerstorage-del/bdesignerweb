@@ -234,15 +234,16 @@ DEFAULT_TRUST_INDICATORS = [
     {"value": "4.9",     "label": "Customer Rating",        "icon": "Star"},
 ]
 
+# Approved 8-step business flow (docs/design.md §16 + rules.md lifecycle).
 DEFAULT_CONSTRUCTION_STEPS = [
-    {"title": "Submit Requirement", "description": "Share your plot details and what you want to build.",                   "icon": "FileText"},
-    {"title": "Free Consultation",  "description": "Talk to our expert and lock down the scope, budget and timeline.",      "icon": "PhoneCall"},
-    {"title": "Site Visit",         "description": "Our team visits your plot to study soil, access and surroundings.",     "icon": "MapPin"},
-    {"title": "Quotation",          "description": "Detailed digital BOQ with transparent pricing — no surprises later.",   "icon": "FileSpreadsheet"},
-    {"title": "Agreement",          "description": "Sign a fixed-cost agreement covering scope, schedule and payments.",    "icon": "FileCheck"},
-    {"title": "Planning",           "description": "Approved drawings, material schedule and milestones go live in BDesigner.","icon": "Calendar"},
-    {"title": "Construction",       "description": "Dedicated PM, weekly progress updates and live photos on your portal.", "icon": "HardHat"},
-    {"title": "Handover",           "description": "Final inspection, snag-fix, warranty pack and keys handed over.",       "icon": "Key"},
+    {"title": "Share Requirement",       "description": "Tell us your plot, floor needs, style preferences and the services you need.",                   "icon": "FileText"},
+    {"title": "Get Pricing",             "description": "View your architectural service charges clearly based on your selected requirements.",            "icon": "BadgeIndianRupee"},
+    {"title": "Create Account",          "description": "Register to continue your project, track updates and work with the BDesigner team.",              "icon": "UserCheck"},
+    {"title": "Team Assigned",           "description": "Admin reviews your lead and assigns the right architect / structural team for your project.",     "icon": "Users"},
+    {"title": "Design & Review",         "description": "Drawings are prepared, shared for review and refined through the approved feedback process.",     "icon": "PencilRuler"},
+    {"title": "Final Drawings + BOQ",    "description": "Final approved drawings and BOQ/estimation are prepared and organized in your project library.","icon": "FileCheck"},
+    {"title": "Construction Proposal",   "description": "If construction is required, we prepare your package, proposal, inclusions and payment plan.",    "icon": "FileSpreadsheet"},
+    {"title": "Construction Execution",  "description": "After approval, agreement and initial payment, construction progress and site updates begin.",    "icon": "HardHat"},
 ]
 
 DEFAULT_GUARANTEES = [
@@ -453,6 +454,36 @@ async def seed_homepage_defaults(db) -> None:
              "label": {"$in": ["Available Across Bengaluru", "Transparent Pricing"]}},
             {"$set": {"hidden": True}},
         )
+    except Exception:                                              # pragma: no cover
+        pass
+
+    # ── Construction-process content migration (idempotent) ────────────
+    # Existing databases were seeded with the old consultation-led flow
+    # (Free Consultation / Site Visit / Quotation ...). Force the approved
+    # 8-step business flow content onto the existing docs, matched by order.
+    try:
+        existing_steps = await db.homepage_blocks.find(
+            {"section": "construction_step"}
+        ).sort("order", 1).to_list(50)
+        old_titles = {b.get("title") for b in existing_steps}
+        approved_titles = {s["title"] for s in DEFAULT_CONSTRUCTION_STEPS}
+        if existing_steps and old_titles != approved_titles:
+            for i, step in enumerate(DEFAULT_CONSTRUCTION_STEPS):
+                await db.homepage_blocks.update_one(
+                    {"section": "construction_step", "order": i},
+                    {"$set": {
+                        "title": step["title"],
+                        "description": step["description"],
+                        "icon": step["icon"],
+                        "hidden": False,
+                        "updated_at": _now(),
+                    }},
+                )
+            # Remove any stale extra steps beyond the approved 8.
+            await db.homepage_blocks.delete_many(
+                {"section": "construction_step", "order": {"$gte": len(DEFAULT_CONSTRUCTION_STEPS)}}
+            )
+            logger.info("Migrated construction_step content to approved 8-step flow")
     except Exception:                                              # pragma: no cover
         pass
 

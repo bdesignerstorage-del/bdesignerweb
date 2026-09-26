@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { CalendarCheck2 } from "lucide-react";
+import { ClipboardList } from "lucide-react";
 import { useLeadModal } from "@/context/LeadModalContext";
 
 /**
- * BDStickyCta — mobile-only fixed "Book Free Consultation" bar.
+ * BDStickyCta — mobile-only fixed "Plan Your Dream Home" bar.
  * Opens the existing lead modal (no duplicate lead logic). Hidden on
  * desktop and on material-detail pages (those have their own product CTA).
  *
@@ -62,13 +62,13 @@ export default function BDStickyCta() {
         onClick={() =>
           openLeadModal({
             source: "mobile_sticky_cta",
-            title: "Book Free Consultation",
-            subtitle: "Talk to our construction advisor in 30 minutes.",
+            title: "Plan Your Dream Home",
+            subtitle: "Tell us about your plot and requirements — our team will take it from there.",
           })
         }
       >
-        <CalendarCheck2 className="w-[18px] h-[18px]" />
-        Book Free Consultation
+        <ClipboardList className="w-[18px] h-[18px]" />
+        Plan Your Dream Home
       </button>
     </div>
   );

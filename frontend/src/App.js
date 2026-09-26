@@ -5,6 +5,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { SettingsProvider } from "@/context/SettingsContext";
 import { LeadModalProvider } from "@/context/LeadModalContext";
+import { HeroModeProvider } from "@/context/HeroModeContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import AuthModal from "@/components/AuthModal";
@@ -77,6 +78,7 @@ function App() {
           <SettingsProvider>
             <AuthProvider>
               <LeadModalProvider>
+                <HeroModeProvider>
                 <ChromeFrame>
                   <Routes>
                     <Route path="/" element={<Home />} />
@@ -91,8 +93,9 @@ function App() {
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
                 </ChromeFrame>
+                </HeroModeProvider>
                 <AuthModal />
-                <Toaster position="bottom-center" theme="light" />
+                <Toaster position="bottom-center" />
               </LeadModalProvider>
             </AuthProvider>
           </SettingsProvider>
