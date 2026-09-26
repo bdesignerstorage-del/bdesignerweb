@@ -21,8 +21,11 @@ import { ArrowRight } from "lucide-react";
  *   • Portrait image only — never landscape.
  *   • Data still admin-editable via /admin/homepage → guarantee.
  */
-export default function GuaranteesYouDeserve({ items = [] }) {
+export default function GuaranteesYouDeserve({ items = [], settings = {} }) {
   const { openLeadModal } = useLeadModal();
+  const cms = settings || {};
+  const eyebrow = cms.meta?.eyebrow || "Built on Trust";
+  const heading = cms.heading || "Guarantees You Deserve";
   const visible = (items || []).filter((i) => !i.hidden);
   const [activeId, setActiveId] = useState(() => visible[0]?.id || null);
   const [userInteracted, setUserInteracted] = useState(false);
@@ -63,9 +66,9 @@ export default function GuaranteesYouDeserve({ items = [] }) {
     >
       {/* Heading — same left-aligned pattern as the rest of the homepage */}
       <div className="mb-6 sm:mb-8">
-        <p className="text-[11px] sm:text-xs uppercase tracking-[0.18em] font-semibold bd-eyebrow">Built on Trust</p>
+        <p className="text-[11px] sm:text-xs uppercase tracking-[0.18em] font-semibold bd-eyebrow">{eyebrow}</p>
         <h2 className="font-display text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 mt-1">
-          Guarantees You <span className="text-[#111111]">Deserve</span>
+          {heading}
         </h2>
       </div>
 

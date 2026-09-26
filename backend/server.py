@@ -29,6 +29,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, EmailStr
 
 from homepage_cms import VALID_SECTIONS, seed_homepage_defaults
+from website_cms import build_cms_router, seed_admin, init_storage
 
 MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
 DB_NAME = os.environ.get("DB_NAME", "bdesigner")
@@ -620,7 +621,24 @@ async def startup_seed_homepage():
         await seed_service_catalog()
     except Exception:
         pass
+    try:
+        await seed_admin(db, hash_password)
+    except Exception:
+        pass
+    try:
+        init_storage()
+    except Exception:
+        pass
 
+
+build_cms_router(
+    api_router=api,
+    db=db,
+    current_user=current_user,
+    hash_password=hash_password,
+    valid_sections=VALID_SECTIONS,
+    default_hero=DEFAULT_SETTINGS["hero"],
+)
 
 app.include_router(api)
 

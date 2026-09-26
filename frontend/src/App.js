@@ -12,6 +12,8 @@ import Footer from "@/components/Footer";
 import AuthModal from "@/components/AuthModal";
 import ScrollToTop from "@/components/ScrollToTop";
 import RouteProgress from "@/components/RouteProgress";
+import AdminLogin from "@/admin/AdminLogin";
+import AdminPanel from "@/admin/AdminPanel";
 import BackButton from "@/components/BackButton";
 import BDBackground from "@/components/bd/BDBackground";
 import BDVideoBackground from "@/components/bd/BDVideoBackground";
@@ -34,15 +36,25 @@ function ChromeFrame({ children }) {
     }
   });
   const isHome = loc.pathname === "/";
+  const isAdmin = loc.pathname.startsWith("/admin");
 
   React.useEffect(() => {
+    if (isAdmin) {
+      document.body.classList.remove("bd-theme");
+      document.body.classList.remove("bd-route-home");
+      return undefined;
+    }
     document.body.classList.add("bd-theme");
     document.body.classList.toggle("bd-route-home", isHome);
     return () => {
       document.body.classList.remove("bd-theme");
       document.body.classList.remove("bd-route-home");
     };
-  }, [isHome]);
+  }, [isHome, isAdmin]);
+
+  if (isAdmin) {
+    return <div key={loc.pathname}>{children}</div>;
+  }
 
   return (
     <div className="bd-site">
@@ -85,6 +97,8 @@ function App() {
                   <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/projects/:id" element={<ProjectDetail />} />
+                    <Route path="/admin/login" element={<AdminLogin />} />
+                    <Route path="/admin" element={<AdminPanel />} />
 
                     {/* Keep auth entry URLs but render the existing homepage modal. */}
                     <Route path="/login" element={<Navigate to="/?auth=login" replace />} />

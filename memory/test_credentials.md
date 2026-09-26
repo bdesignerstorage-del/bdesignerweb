@@ -1,5 +1,11 @@
 # BDesigner Test Credentials
 
+## Admin account (Website CMS) — created by backend bootstrap on startup
+
+| Email | Password | Role | Notes |
+|-------|----------|------|-------|
+| admin@bdesigner.com | 9-D6NIbzb8Gz0yHK | admin | Bootstrap admin. `must_change_password=true`. Login at `/admin/login`. If backend reseeds (no admin exists), fresh temp password prints to `/var/log/supervisor/backend.err.log` under "BDESIGNER ADMIN BOOTSTRAP". |
+
 ## Client accounts created via Requirement Form registration (Step 8)
 
 | Email | Password | Mobile | Name | Notes |

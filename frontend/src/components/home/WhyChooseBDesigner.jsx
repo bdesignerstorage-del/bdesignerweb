@@ -16,18 +16,21 @@ function Cell({ kind }) {
  *
  * Rows / values / icons are admin-editable via /admin/homepage.
  */
-export default function WhyChooseBDesigner({ items = [] }) {
+export default function WhyChooseBDesigner({ items = [], settings = {} }) {
   const visible = (items || []).filter((i) => !i.hidden);
   if (!visible.length) return null;
+  const cms = settings || {};
+  const eyebrow = cms.meta?.eyebrow || "The BDesigner Difference";
+  const heading = cms.heading || "Why Choose BDesigner";
   return (
     <section
       data-testid="why-choose-section"
       className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14"
     >
       <div className="mb-6 sm:mb-8">
-        <p className="text-[11px] sm:text-xs uppercase tracking-[0.18em] font-semibold bd-eyebrow">The BDesigner Difference</p>
+        <p className="text-[11px] sm:text-xs uppercase tracking-[0.18em] font-semibold bd-eyebrow">{eyebrow}</p>
         <h2 className="font-display text-2xl sm:text-3xl lg:text-4xl font-bold text-white mt-1">
-          Why Choose <span className="text-[#C9A24A]">BDesigner</span>
+          {heading}
         </h2>
       </div>
 

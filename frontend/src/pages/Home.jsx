@@ -33,16 +33,23 @@ export default function Home() {
     // Each call degrades gracefully so a single 5xx/network blip
     // doesn't show the React dev-overlay "Network Error" banner.
     const safe = (p, fallback) => p.then((r) => r.data).catch(() => fallback);
+    const params = new URLSearchParams(window.location.search);
+    const wantsPreview = params.get("cms_preview") === "1";
+    const hasAdminToken = !!(sessionStorage.getItem("bd_token") || localStorage.getItem("bd_token"));
+    const sectionsReq = (wantsPreview && hasAdminToken)
+      ? safe(api.get("/admin/cms/homepage/preview"), null).then((d) => (d && d.sections) ? d.sections : null)
+      : Promise.resolve(null);
     Promise.all([
       safe(api.get("/projects?limit=8"), []),
+      sectionsReq,
       safe(api.get("/homepage/sections"), {
         trust_indicator: [], construction_step: [], guarantee: [], advisor_benefit: [],
         service_area: [], service_area_region: [], homeowner_review: [], construction_package: [],
         comparison_feature: [], faq: [],
       }),
-    ]).then(([p, hp]) => {
+    ]).then(([p, previewSections, hp]) => {
       setProjects(p);
-      setSections(hp || {});
+      setSections(previewSections || hp || {});
     }).finally(() => {
       setLoading(false);
     });
@@ -83,10 +90,10 @@ export default function Home() {
       <Reveal><AvailableInBengaluru items={sections.service_area || []} /></Reveal>
 
       {/* Guarantees You Deserve — vertical menu + animated right panel */}
-      <Reveal><GuaranteesYouDeserve items={sections.guarantee || []} /></Reveal>
+      <Reveal><GuaranteesYouDeserve items={sections.guarantee || []} settings={(sections._settings || {}).guarantee} /></Reveal>
 
       {/* Why Choose BDesigner — comparison table */}
-      <Reveal><WhyChooseBDesigner items={sections.comparison_feature || []} /></Reveal>
+      <Reveal><WhyChooseBDesigner items={sections.comparison_feature || []} settings={(sections._settings || {}).comparison_feature} /></Reveal>
 
       {/* Trending Projects — horizontal scroll */}
       <Reveal>
