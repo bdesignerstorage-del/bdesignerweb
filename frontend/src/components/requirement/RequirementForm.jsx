@@ -1,22 +1,25 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import {
-  X, ArrowLeft, ClipboardList, Check, ChevronDown, ChevronUp, Upload,
-  MapPin, Plus, Minus, Loader2, Mail, Phone as PhoneIcon,
+  X, ArrowLeft, ClipboardList, Upload, MapPin, Loader2, Mail,
+  Phone as PhoneIcon, ChevronDown, ChevronUp, Sparkles, CheckCircle2,
 } from "lucide-react";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+import {
+  ReqCard, ReqField, ReqSegmented, ReqCounter, ReqChips, ReqImageCard, ReqRow,
+  ELEV_IMAGES, rupee,
+} from "./primitives";
 
 const LS_KEY = "bd_requirement_draft_v1";
 const FACINGS = ["North", "South", "East", "West", "North-East", "North-West", "South-East", "South-West"];
 const PURPOSES = ["House Owner", "House Rent", "Parking", "Shop", "Storage"];
 const INDOOR = ["Living Room","Temple","Kitchen","Double Height Lobby","Dining","Common Washroom","Office Area","Study Room","Kids Room","Store Room","Inside Lift","Inside Stair","Family Lounge","Drawing Room","Theatre","Gym","Walk-in Wardrobe","Bar Area","Balcony","Foyer","Wash Area","Family Room","Conference Room","Powder Room"];
 const OUTDOOR = ["Garden","Outside Stair","Swimming Pool","Security Room","Compound Gate","Veranda / Sitout","Basement Room","Servant Room","Pet House","Bonfire"];
-const ELEV_STYLES = ["Simple Design","Modern Design","Kerala Design","Classical Design"];
-const ELEV_VIEWS = ["Front Design","Left Design","Right Design","Back Design"];
+const ELEV_STYLES = ["Simple Design", "Modern Design", "Kerala Design", "Classical Design"];
+const ELEV_VIEWS = ["Front Design", "Left Design", "Right Design", "Back Design"];
 
-const rupee = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
 const emptyFloor = () => ({ area: "", purpose: "House Owner", bedrooms: 0, masterBedrooms: 0, indoor: [], outdoor: [], notes: "" });
 
 function loadDraft() {
@@ -31,22 +34,27 @@ export default function RequirementForm({ onClose }) {
   const [services, setServices] = useState([]);
   const [selected, setSelected] = useState(saved?.selected || []);
   const [dims, setDims] = useState(saved?.dims || { front: "", back: "", left: "", right: "" });
-  const [storeys, setStoreys] = useState(saved?.storeys ?? 0); // G+N -> N
+  const [storeys, setStoreys] = useState(saved?.storeys ?? 0);
   const [floors, setFloors] = useState(saved?.floors || [emptyFloor()]);
   const [projectName, setProjectName] = useState(saved?.projectName || "");
   const [files, setFiles] = useState(saved?.files || []);
   const [address, setAddress] = useState(saved?.address || null);
   const [showAddrPicker, setShowAddrPicker] = useState(false);
   const [serviceAreas, setServiceAreas] = useState([]);
-  const [serviceable, setServiceable] = useState(null);
+  const [serviceable, setServiceable] = useState(saved?.serviceable ?? null);
   const [construction, setConstruction] = useState(saved?.construction || { need: "", vastu: "", facing: "", family: 0, bike: 0, car: 0 });
   const [activeFloor, setActiveFloor] = useState(0);
   const [elevation, setElevation] = useState(saved?.elevation || { style: "", views: [] });
   const [priceLines, setPriceLines] = useState([]);
   const [total, setTotal] = useState(0);
-  const [reg, setReg] = useState({ name: "", mobile: "", email: "", password: "" });
+  const [reg, setReg] = useState({ name: user?.name || "", mobile: "", email: user?.email || "", password: "" });
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState("");
+
+  useEffect(() => {
+    document.body.classList.add("lead-modal-open");
+    return () => document.body.classList.remove("lead-modal-open");
+  }, []);
 
   useEffect(() => {
     api.get("/requirement/services").then((r) => setServices(r.data.services || [])).catch(() => {});
@@ -63,7 +71,6 @@ export default function RequirementForm({ onClose }) {
     [services, selected]
   );
 
-  // Live authoritative pricing
   useEffect(() => {
     if (!selected.length) { setPriceLines([]); setTotal(0); return; }
     const t = setTimeout(() => {
@@ -74,14 +81,12 @@ export default function RequirementForm({ onClose }) {
     return () => clearTimeout(t);
   }, [selected, totalArea]);
 
-  // Autosave
   useEffect(() => {
     try {
-      localStorage.setItem(LS_KEY, JSON.stringify({ step, selected, dims, storeys, floors, projectName, files, address, construction, elevation }));
+      localStorage.setItem(LS_KEY, JSON.stringify({ step, selected, dims, storeys, floors, projectName, files, address, serviceable, construction, elevation }));
     } catch {}
-  }, [step, selected, dims, storeys, floors, projectName, files, address, construction, elevation]);
+  }, [step, selected, dims, storeys, floors, projectName, files, address, serviceable, construction, elevation]);
 
-  // Keep floors array length in sync with storeys
   useEffect(() => {
     setFloors((prev) => {
       const need = storeys + 1;
@@ -107,7 +112,7 @@ export default function RequirementForm({ onClose }) {
     if (step === 1 && selected.length === 0) return setErr("Select at least one service.");
     if (step === 2 && totalArea <= 0) return setErr("Enter built-up area for at least one floor.");
     if (step === 3 && !address) return setErr("Select your project location.");
-    if (step === 4 && !construction.need) return setErr("Please tell us about construction interest.");
+    if (step === 4 && !construction.need) return setErr("Please tell us about your construction interest.");
     if (step === 6 && !elevation.style) return setErr("Select an elevation style.");
     if (idx < STEPS.length - 1) setStep(STEPS[idx + 1]);
   };
@@ -144,7 +149,7 @@ export default function RequirementForm({ onClose }) {
       if (!name) throw new Error("Please enter your full name.");
       if (mobile.length < 10) throw new Error("Enter a valid 10-digit mobile number.");
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error("Enter a valid email.");
-      if (reg.password.length < 6) throw new Error("Password must be at least 6 characters.");
+      if (!user?.id && reg.password.length < 6) throw new Error("Password must be at least 6 characters.");
       if (!user?.id) await register(name, email, reg.password, mobile, "client");
       await submitLead({ name, mobile, email });
       try { localStorage.removeItem(LS_KEY); } catch {}
@@ -156,311 +161,360 @@ export default function RequirementForm({ onClose }) {
   };
 
   const STEP_META = {
-    1: { title: "Select Architectural Services", help: "Choose the design services you need for your project." },
-    2: { title: "Project Details", help: "Tell us your plot size, floors and project name." },
-    3: { title: "Serviceability Check", help: "Confirm your location so we can check construction coverage." },
-    4: { title: "Construction Requirement", help: "A few details to shape your design and build." },
-    5: { title: "Specify Room Per Floor", help: "Set the rooms and amenities for each floor." },
-    6: { title: "Select Elevation Details", help: "Pick the elevation style and views you like." },
-    7: { title: "Project Summary", help: "Review your requirement and estimated charges." },
-    8: { title: "Registration", help: "Create your account to save this project and continue." },
+    1: { n: 1, title: "Select Architectural Services", help: "Choose the design services you need for your dream home." },
+    2: { n: 2, title: "Project Details", help: "Tell us your plot size, floors and project name." },
+    3: { n: 3, title: "Serviceability Check", help: "Confirm your location so we can check construction coverage." },
+    4: { n: 4, title: "Construction Requirement", help: "A few details to shape your design and build." },
+    5: { n: 5, title: "Rooms Per Floor", help: "Set the rooms and amenities for each floor." },
+    6: { n: 6, title: "Elevation Details", help: "Pick the elevation style and views you like." },
+    7: { n: 7, title: "Project Summary", help: "Review your requirement and estimated charges." },
+    8: { n: 8, title: "Create Your Account", help: "Save this project and continue with BDesigner." },
   };
   const meta = STEP_META[step];
-  const showPriceBar = [2, 3, 4, 5, 6].includes(step);
+  const stepIndex = STEPS.indexOf(step);
+
+  // CTA config
+  let ctaLabel = "Next", ctaAction = goNext, ctaDisabled = false, secondary = null, ctaIcon = null;
+  if (step === 1) ctaLabel = "Continue";
+  if (step === 7) {
+    ctaLabel = "Continue With This Project"; ctaAction = () => setStep(8);
+    secondary = { label: "Edit Requirement", action: () => setStep(1) };
+  }
+  if (step === 8) {
+    ctaLabel = submitting ? "Creating…" : (user?.id ? "Save My Project" : "Create Account");
+    ctaAction = handleRegister; ctaDisabled = submitting;
+    ctaIcon = submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />;
+  }
+
+  const CtaButtons = ({ full }) => (
+    <div className={`flex ${secondary ? "flex-col sm:flex-row" : ""} gap-2.5`}>
+      {secondary && (
+        <button data-testid="req-edit" onClick={secondary.action}
+          className="bd-req-ghost rounded-full px-5 py-3 text-sm font-semibold sm:flex-1">
+          {secondary.label}
+        </button>
+      )}
+      <button
+        data-testid={step === 8 ? "req-create-account" : "req-next"}
+        onClick={ctaAction}
+        disabled={ctaDisabled}
+        className={`bd-req-cta rounded-full px-6 py-3 text-sm inline-flex items-center justify-center gap-2 ${full || secondary ? "flex-1" : ""}`}
+      >
+        {ctaIcon}{ctaLabel}
+      </button>
+    </div>
+  );
+
+  const Summary = ({ compact }) => (
+    <div className="space-y-4" data-testid="req-summary-panel">
+      <div>
+        <p className="bd-eyebrow">Your Project</p>
+        <h3 className="text-xl font-bold text-[var(--text-primary)] mt-1 leading-tight">{projectName || "My Dream Home"}</h3>
+      </div>
+      <div className="bd-card-surface rounded-2xl px-4 py-1 bd-req-divide">
+        <ReqRow k="Services" v={selected.length ? `${selected.length} selected` : "—"} />
+        <ReqRow k="Built-up Area" v={totalArea > 0 ? `${totalArea.toLocaleString("en-IN")} sq.ft.` : "—"} />
+        <ReqRow k="Floors" v={`G + ${storeys}`} />
+        <ReqRow k="Location" v={address?.label || "—"} />
+        {construction.need && <ReqRow k="Construction" v={construction.need} />}
+      </div>
+      {serviceable !== null && (
+        <div className={`text-xs font-semibold px-3 py-2 rounded-xl inline-flex items-center gap-1.5 ${serviceable ? "text-[var(--status-success)]" : "text-[var(--status-warning)]"}`}
+          style={{ background: "var(--surface-secondary)", border: "1px solid var(--border-primary)" }} data-testid="req-serviceability">
+          <MapPin className="w-3.5 h-3.5" />
+          {serviceable ? "Construction available in your area" : "Architecture available · turnkey coming soon"}
+        </div>
+      )}
+      {!compact && priceLines.length > 0 && (
+        <div className="bd-card-surface rounded-2xl px-4 py-3 bd-req-divide">
+          {priceLines.map((l) => (
+            <div key={l.code} className="flex items-center justify-between py-2">
+              <div>
+                <div className="text-sm font-medium text-[var(--text-primary)]">{l.name}</div>
+                <div className="text-[11px] text-[var(--text-secondary)]">
+                  {l.pricing_type === "free" ? "Included FREE" : l.pricing_type === "per_sqft" ? `${rupee(l.rate)}/sq.ft. × ${l.applicable_area.toLocaleString("en-IN")} sq.ft.` : "Fixed"}
+                </div>
+              </div>
+              <div className="text-sm font-semibold text-[var(--text-primary)]">{rupee(l.amount)}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="flex items-end justify-between pt-1">
+        <div>
+          <div className="text-[11px] uppercase tracking-wider text-[var(--text-secondary)]">Architectural Estimate</div>
+          <div className="text-2xl font-bold bd-req-accent mt-0.5" data-testid="req-summary-total">{rupee(total)}</div>
+        </div>
+        <div className="flex items-center gap-1 text-[11px] text-[var(--text-muted)]">
+          <Sparkles className="w-3 h-3" /> Live estimate
+        </div>
+      </div>
+    </div>
+  );
 
   const shell = (
-    <div className="fixed inset-0 z-[100000] flex items-stretch sm:items-center justify-center" data-testid="requirement-form" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full sm:max-w-md bg-[var(--background-secondary,#111111)] text-[var(--text-primary,#F5F5F5)] sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col h-full sm:h-auto sm:max-h-[92vh] border border-[var(--border-primary,#292929)]">
-        {/* Header */}
-        <div className="shrink-0 px-5 pt-5 pb-4 border-b border-[var(--border-divider,#242424)]">
-          <div className="flex items-start justify-between">
-            <div className="w-11 h-11 rounded-xl bg-[var(--background-elevated,#1A1A1A)] grid place-items-center border border-[var(--border-primary,#292929)]">
-              <ClipboardList className="w-5 h-5 text-[#C9A24A]" />
-            </div>
-            <div className="flex gap-2">
-              {STEPS.indexOf(step) > 0 && (
-                <button data-testid="req-back" onClick={goBack} aria-label="Back" className="w-9 h-9 grid place-items-center rounded-full bg-[var(--background-elevated,#1A1A1A)] border border-[var(--border-primary,#292929)] hover:opacity-80">
-                  <ArrowLeft className="w-4 h-4" />
-                </button>
-              )}
-              <button data-testid="req-close" onClick={onClose} aria-label="Close" className="w-9 h-9 grid place-items-center rounded-full bg-[var(--background-elevated,#1A1A1A)] border border-[var(--border-primary,#292929)] hover:opacity-80">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#C9A24A] mt-3">BDesigner</p>
-          <h2 className="text-2xl font-bold mt-0.5" style={{ letterSpacing: "-0.02em" }} data-testid="req-step-title">{meta.title}</h2>
-          <p className="text-sm text-[var(--text-secondary,#B5B5B5)] mt-1">{meta.help}</p>
-          <div className="mt-3 flex gap-1">
-            {STEPS.map((s) => (
-              <span key={s} className={`h-1 flex-1 rounded-full ${STEPS.indexOf(step) >= STEPS.indexOf(s) ? "bg-[#C9A24A]" : "bg-[var(--border-primary,#292929)]"}`} />
-            ))}
-          </div>
-        </div>
-
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
-          {err && <div data-testid="req-error" className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{err}</div>}
-
-          {step === 1 && (
-            <div className="grid grid-cols-2 gap-3" data-testid="req-services">
-              {services.map((s) => {
-                const on = selected.includes(s.code);
-                return (
-                  <button key={s.code} type="button" data-testid={`req-service-${s.code}`} onClick={() => toggleService(s.code)}
-                    className={`relative text-left rounded-2xl overflow-hidden border transition ${on ? "border-[#C9A24A]" : "border-[var(--border-primary,#292929)]"}`}>
-                    <span className={`absolute top-2 left-2 z-10 w-6 h-6 rounded-full grid place-items-center ${on ? "bg-[#C9A24A] text-black" : "bg-black/50 text-white/70 border border-white/30"}`}><Check className="w-3.5 h-3.5" /></span>
-                    {s.pricing_type === "free" && <span className="absolute top-2 right-2 z-10 text-[10px] font-bold px-2 py-0.5 rounded bg-[#C9A24A] text-black">FREE</span>}
-                    <div className="aspect-[4/3] bg-cover bg-center" style={{ backgroundImage: `url(${s.image})` }} />
-                    <div className="p-2.5 bg-[var(--background-card,#151515)]"><div className="text-sm font-semibold leading-tight">{s.name}</div></div>
+    <div className="fixed inset-0 z-[100000] flex items-stretch lg:items-center justify-center" data-testid="requirement-form" role="dialog" aria-modal="true">
+      <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={onClose} />
+      <div className="bd-req-shell bd-req-enter relative w-full h-full lg:h-auto lg:max-h-[90vh] lg:max-w-5xl lg:rounded-3xl shadow-2xl overflow-hidden flex flex-col lg:flex-row">
+        {/* LEFT — form */}
+        <div className="flex-1 flex flex-col min-h-0 lg:w-[60%]">
+          {/* Header */}
+          <div className="shrink-0 px-5 sm:px-7 pt-5 sm:pt-7 pb-4 border-b" style={{ borderColor: "var(--border-divider)" }}>
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl grid place-items-center bd-card-surface">
+                  <ClipboardList className="w-5 h-5 bd-req-accent" />
+                </div>
+                <div>
+                  <p className="bd-eyebrow">BDesigner</p>
+                  <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">Step {meta.n} of {STEPS.length}</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                {stepIndex > 0 && (
+                  <button data-testid="req-back" onClick={goBack} aria-label="Back" className="bd-req-iconbtn w-9 h-9 grid place-items-center rounded-full">
+                    <ArrowLeft className="w-4 h-4" />
                   </button>
-                );
-              })}
+                )}
+                <button data-testid="req-close" onClick={onClose} aria-label="Close" className="bd-req-iconbtn w-9 h-9 grid place-items-center rounded-full">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-          )}
+            <h2 className="text-2xl sm:text-[26px] font-bold mt-4 text-[var(--text-primary)]" style={{ letterSpacing: "-0.02em" }} data-testid="req-step-title">{meta.title}</h2>
+            <p className="text-sm text-[var(--text-secondary)] mt-1">{meta.help}</p>
+            <div className="mt-4 flex gap-1.5">
+              {STEPS.map((s) => (
+                <span key={s} className={`h-1 flex-1 rounded-full ${stepIndex >= STEPS.indexOf(s) ? "bd-req-track-on" : "bd-req-track"}`} />
+              ))}
+            </div>
+          </div>
 
-          {step === 2 && (
-            <>
-              <Card title="Built-up Area (ft)">
-                <div className="grid grid-cols-2 gap-3">
-                  {["front", "back", "left", "right"].map((k) => (
-                    <Input key={k} placeholder={`${k[0].toUpperCase()+k.slice(1)} side`} value={dims[k]} type="number" testid={`req-dim-${k}`}
-                      onChange={(v) => setDims({ ...dims, [k]: v })} />
-                  ))}
-                </div>
-              </Card>
-              <Card title="Add Your Storey">
-                <div className="flex items-center justify-between gap-2 bg-[var(--background-elevated,#1A1A1A)] rounded-xl px-3 py-2 border border-[var(--border-primary,#292929)]">
-                  <button onClick={() => setStoreys((s) => Math.max(0, s - 1))} data-testid="req-storey-minus" className="w-9 h-9 grid place-items-center rounded-full border border-[var(--border-primary,#292929)]"><ChevronDown className="w-4 h-4" /></button>
-                  <span className="text-lg font-bold" data-testid="req-storey-val">G + {storeys}</span>
-                  <button onClick={() => setStoreys((s) => Math.min(9, s + 1))} data-testid="req-storey-plus" className="w-9 h-9 grid place-items-center rounded-full border border-[var(--border-primary,#292929)]"><ChevronUp className="w-4 h-4" /></button>
-                </div>
-                <div className="flex gap-3 overflow-x-auto mt-3 hide-scrollbar" data-testid="req-floor-areas">
-                  {Array.from({ length: storeys + 1 }).map((_, i) => (
-                    <div key={i} className="shrink-0 w-[150px] rounded-xl border border-[var(--border-primary,#292929)] bg-[var(--background-card,#151515)] p-3">
-                      <div className="text-xs text-[var(--text-secondary,#B5B5B5)] mb-1">{floorName(i)}</div>
-                      <Input placeholder="Area sq.ft." type="number" value={floors[i]?.area || ""} testid={`req-floor-area-${i}`} onChange={(v) => updFloor(i, { area: v })} />
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-3 text-sm font-semibold" data-testid="req-total-area">Total Built-up Area: {totalArea.toLocaleString("en-IN")} sq.ft.</div>
-              </Card>
-              <Card title="Project Name">
-                <Input placeholder="Enter Project Name" value={projectName} testid="req-project-name" onChange={setProjectName} />
-              </Card>
-              <Card title="Upload Files">
-                <label className="flex flex-col items-center justify-center gap-2 py-5 rounded-xl border border-dashed border-[var(--border-primary,#292929)] cursor-pointer text-[var(--text-secondary,#B5B5B5)]">
-                  <Upload className="w-5 h-5" /><span className="text-xs">Upload plan, CAD, PDF, images & videos</span>
-                  <input type="file" multiple className="hidden" data-testid="req-file-input" onChange={(e) => setFiles((p) => [...p, ...Array.from(e.target.files).map((f) => ({ name: f.name, size: f.size }))])} />
-                </label>
-                {files.length > 0 && <div className="flex flex-wrap gap-2 mt-2">{files.map((f, i) => (
-                  <span key={i} className="text-[11px] px-2 py-1 rounded-lg bg-[var(--background-elevated,#1A1A1A)] border border-[var(--border-primary,#292929)] flex items-center gap-1">{f.name}<button onClick={() => setFiles((p) => p.filter((_, k) => k !== i))}><X className="w-3 h-3" /></button></span>
-                ))}</div>}
-              </Card>
-            </>
-          )}
+          {/* Body */}
+          <div className="flex-1 overflow-y-auto px-5 sm:px-7 py-5 space-y-4">
+            {err && <div data-testid="req-error" className="text-sm rounded-xl px-3.5 py-2.5" style={{ color: "var(--status-error)", background: "rgba(239,68,68,0.10)", border: "1px solid rgba(239,68,68,0.25)" }}>{err}</div>}
 
-          {step === 3 && (
-            !showAddrPicker ? (
+            {step === 1 && (
+              <div className="grid grid-cols-2 gap-3" data-testid="req-services">
+                {services.map((s) => (
+                  <ReqImageCard
+                    key={s.code}
+                    testid={`req-service-${s.code}`}
+                    image={s.image}
+                    label={s.name}
+                    sublabel={s.pricing_type === "per_sqft" ? `${rupee(s.rate)}/sq.ft.` : s.pricing_type === "free" ? "Complimentary" : "Fixed price"}
+                    badge={s.pricing_type === "free" ? "FREE" : null}
+                    selected={selected.includes(s.code)}
+                    onClick={() => toggleService(s.code)}
+                  />
+                ))}
+              </div>
+            )}
+
+            {step === 2 && (
               <>
-                <div className="rounded-2xl overflow-hidden border border-[var(--border-primary,#292929)] aspect-[4/3] bg-cover bg-center" style={{ backgroundImage: "url(https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=800&q=70)" }} />
-                <Card title="Select your location" right={<button onClick={() => setShowAddrPicker(true)} data-testid="req-change-location" className="text-sm text-[#C9A24A]">Change →</button>}>
-                  {address ? (
-                    <div className="flex items-start gap-2"><MapPin className="w-4 h-4 text-[#C9A24A] mt-0.5" /><div><div className="text-sm font-semibold">{address.label}</div></div></div>
-                  ) : <div className="text-sm text-[var(--text-secondary,#B5B5B5)]">No location selected yet.</div>}
-                  {serviceable !== null && (
-                    <div className={`mt-3 text-xs font-semibold px-2.5 py-1.5 rounded-lg inline-block ${serviceable ? "bg-emerald-500/15 text-emerald-400" : "bg-amber-500/15 text-amber-400"}`} data-testid="req-serviceability">
-                      {serviceable ? "Construction Available" : "Construction Not Available Yet — architecture continues"}
-                    </div>
-                  )}
-                </Card>
-              </>
-            ) : (
-              <div data-testid="req-address-picker">
-                <button onClick={() => setShowAddrPicker(false)} className="flex items-center gap-2 text-sm mb-3"><ArrowLeft className="w-4 h-4" /> Back to map</button>
-                <div className="space-y-2">
-                  {serviceAreas.map((a) => (
-                    <button key={a.id} data-testid={`req-area-${a.id}`} onClick={() => { setAddress(a); setServiceable(true); setShowAddrPicker(false); }}
-                      className="w-full flex items-start gap-3 p-3 rounded-xl border border-[var(--border-primary,#292929)] hover:border-[#C9A24A] text-left">
-                      <MapPin className="w-4 h-4 text-[#C9A24A] mt-0.5" /><div className="text-sm font-semibold">{a.label}</div>
-                    </button>
-                  ))}
-                  <button data-testid="req-area-other" onClick={() => { setAddress({ label: "Other location" }); setServiceable(false); setShowAddrPicker(false); }}
-                    className="w-full p-3 rounded-xl border border-dashed border-[var(--border-primary,#292929)] text-sm text-[var(--text-secondary,#B5B5B5)]">My area isn't listed (architecture still available)</button>
-                </div>
-              </div>
-            )
-          )}
-
-          {step === 4 && (
-            <>
-              <Card title="Do you also need turnkey construction?">
-                <Segmented options={["Yes", "No", "Maybe Later"]} value={construction.need} onChange={(v) => setConstruction({ ...construction, need: v })} testid="req-construction-need" />
-              </Card>
-              <Card title="Plan needs as per standard Vastu?">
-                <Segmented options={["Yes", "No"]} value={construction.vastu} onChange={(v) => setConstruction({ ...construction, vastu: v })} testid="req-vastu" />
-              </Card>
-              <Card title="Front facing">
-                <div className="grid grid-cols-4 gap-2">{FACINGS.map((f) => (
-                  <button key={f} data-testid={`req-facing-${f}`} onClick={() => setConstruction({ ...construction, facing: f })} className={`text-xs py-2 rounded-lg border ${construction.facing === f ? "border-[#C9A24A] text-[#C9A24A]" : "border-[var(--border-primary,#292929)]"}`}>{f}</button>
-                ))}</div>
-              </Card>
-              <Counter label="Family Members" value={construction.family} onChange={(v) => setConstruction({ ...construction, family: v })} testid="req-family" />
-              <Counter label="Bike Parking" value={construction.bike} onChange={(v) => setConstruction({ ...construction, bike: v })} testid="req-bike" />
-              <Counter label="Car Parking" value={construction.car} onChange={(v) => setConstruction({ ...construction, car: v })} testid="req-car" />
-            </>
-          )}
-
-          {step === 5 && (
-            <>
-              <div className="flex gap-2 overflow-x-auto hide-scrollbar" data-testid="req-floor-tabs">
-                {Array.from({ length: storeys + 1 }).map((_, i) => (
-                  <button key={i} data-testid={`req-floor-tab-${i}`} onClick={() => setActiveFloor(i)} className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border ${activeFloor === i ? "bg-[#C9A24A] text-black border-[#C9A24A]" : "border-[var(--border-primary,#292929)]"}`}>{floorName(i)}</button>
-                ))}
-              </div>
-              <Card title="Select the Purpose">
-                <div className="flex gap-2 overflow-x-auto hide-scrollbar" data-testid="req-purpose">
-                  {PURPOSES.map((p) => (
-                    <button key={p} onClick={() => updFloor(activeFloor, { purpose: p })} className={`shrink-0 px-3 py-2 rounded-xl text-xs border ${floors[activeFloor]?.purpose === p ? "border-[#C9A24A] text-[#C9A24A]" : "border-[var(--border-primary,#292929)]"}`}>{p}</button>
-                  ))}
-                </div>
-              </Card>
-              <Counter label="Bedrooms" value={floors[activeFloor]?.bedrooms || 0} onChange={(v) => updFloor(activeFloor, { bedrooms: v })} testid="req-bedrooms" />
-              <Counter label="Master Bedrooms" value={floors[activeFloor]?.masterBedrooms || 0} onChange={(v) => updFloor(activeFloor, { masterBedrooms: v })} testid="req-master" />
-              <Card title="Indoor Amenities"><Chips items={INDOOR} selected={floors[activeFloor]?.indoor || []} onToggle={(v) => toggleFloorItem(activeFloor, "indoor", v)} /></Card>
-              <Card title="Outdoor Amenities"><Chips items={OUTDOOR} selected={floors[activeFloor]?.outdoor || []} onToggle={(v) => toggleFloorItem(activeFloor, "outdoor", v)} /></Card>
-              <Card title="Additional Information">
-                <textarea data-testid="req-floor-notes" value={floors[activeFloor]?.notes || ""} onChange={(e) => updFloor(activeFloor, { notes: e.target.value })} placeholder="Add any additional requirements for this floor…" rows={3}
-                  className="w-full bg-[var(--background-elevated,#1A1A1A)] border border-[var(--border-primary,#292929)] rounded-xl p-3 text-sm" />
-              </Card>
-            </>
-          )}
-
-          {step === 6 && wantsElevation && (
-            <>
-              <Card title="Select elevation type">
-                <div className="grid grid-cols-2 gap-3">{ELEV_STYLES.map((s) => (
-                  <button key={s} data-testid={`req-elev-style-${s}`} onClick={() => setElevation({ ...elevation, style: s })} className={`p-3 rounded-xl border text-sm ${elevation.style === s ? "border-[#C9A24A] text-[#C9A24A]" : "border-[var(--border-primary,#292929)]"}`}>{s}</button>
-                ))}</div>
-              </Card>
-              <Card title="Select elevation views">
-                <Chips items={ELEV_VIEWS} selected={elevation.views} onToggle={(v) => setElevation({ ...elevation, views: elevation.views.includes(v) ? elevation.views.filter((x) => x !== v) : [...elevation.views, v] })} />
-              </Card>
-            </>
-          )}
-
-          {step === 7 && (
-            <div data-testid="req-summary">
-              <Card title={projectName || "My Dream Home"}>
-                <Row k="Location" v={address?.label || "—"} />
-                <Row k="Floors" v={`G + ${storeys}`} />
-                <Row k="Total Built-up Area" v={`${totalArea.toLocaleString("en-IN")} sq.ft.`} />
-                <Row k="Construction Interest" v={construction.need || "—"} />
-              </Card>
-              <Card title="Architectural charges">
-                {priceLines.map((l) => (
-                  <div key={l.code} className="flex items-center justify-between py-1.5 border-b border-[var(--border-divider,#242424)] last:border-0">
-                    <div className="text-sm"><div className="font-medium">{l.name}</div><div className="text-[11px] text-[var(--text-secondary,#B5B5B5)]">{l.pricing_type === "free" ? "Included FREE" : l.pricing_type === "per_sqft" ? `${rupee(l.rate)}/sq.ft. × ${l.applicable_area.toLocaleString("en-IN")} sq.ft.` : "Fixed"}</div></div>
-                    <div className="text-sm font-semibold">{rupee(l.amount)}</div>
+                <ReqCard title="Built-up Area (ft)" subtitle="Plot dimensions on each side">
+                  <div className="grid grid-cols-2 gap-3">
+                    {["front", "back", "left", "right"].map((k) => (
+                      <ReqField key={k} placeholder={`${k[0].toUpperCase() + k.slice(1)} side`} value={dims[k]} type="number" inputMode="numeric" testid={`req-dim-${k}`}
+                        onChange={(v) => setDims({ ...dims, [k]: v })} />
+                    ))}
                   </div>
-                ))}
-                <div className="flex items-center justify-between pt-3 mt-2 border-t border-[var(--border-primary,#292929)]">
-                  <span className="font-bold">Total architectural estimate</span>
-                  <span className="font-bold text-[#C9A24A]" data-testid="req-summary-total">{rupee(total)}</span>
+                </ReqCard>
+                <ReqCard title="Add Your Storey" subtitle="Ground + additional floors">
+                  <div className="bd-card-surface flex items-center justify-between rounded-xl px-3 py-2">
+                    <button onClick={() => setStoreys((s) => Math.max(0, s - 1))} data-testid="req-storey-minus" className="bd-req-iconbtn w-9 h-9 grid place-items-center rounded-full"><ChevronDown className="w-4 h-4" /></button>
+                    <span className="text-lg font-bold text-[var(--text-primary)]" data-testid="req-storey-val">G + {storeys}</span>
+                    <button onClick={() => setStoreys((s) => Math.min(9, s + 1))} data-testid="req-storey-plus" className="bd-req-iconbtn w-9 h-9 grid place-items-center rounded-full"><ChevronUp className="w-4 h-4" /></button>
+                  </div>
+                  <div className="flex gap-3 overflow-x-auto mt-3 hide-scrollbar pb-1" data-testid="req-floor-areas">
+                    {Array.from({ length: storeys + 1 }).map((_, i) => (
+                      <div key={i} className="shrink-0 w-[150px] bd-card-surface rounded-xl p-3">
+                        <div className="text-xs text-[var(--text-secondary)] mb-1.5">{floorName(i)}</div>
+                        <ReqField placeholder="Area sq.ft." type="number" inputMode="numeric" value={floors[i]?.area || ""} testid={`req-floor-area-${i}`} onChange={(v) => updFloor(i, { area: v })} />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 text-sm font-semibold text-[var(--text-primary)]" data-testid="req-total-area">Total Built-up Area: <span className="bd-req-accent">{totalArea.toLocaleString("en-IN")} sq.ft.</span></div>
+                </ReqCard>
+                <ReqCard title="Project Name">
+                  <ReqField placeholder="e.g. Sharma Residence" value={projectName} testid="req-project-name" onChange={setProjectName} />
+                </ReqCard>
+                <ReqCard title="Upload Files" subtitle="Optional — plans, CAD, references">
+                  <label className="flex flex-col items-center justify-center gap-2 py-6 rounded-xl border border-dashed cursor-pointer text-[var(--text-secondary)]" style={{ borderColor: "var(--border-strong)" }}>
+                    <Upload className="w-5 h-5" /><span className="text-xs">Upload plan, CAD, PDF, images & videos</span>
+                    <input type="file" multiple className="hidden" data-testid="req-file-input" onChange={(e) => setFiles((p) => [...p, ...Array.from(e.target.files).map((f) => ({ name: f.name, size: f.size }))])} />
+                  </label>
+                  {files.length > 0 && <div className="flex flex-wrap gap-2 mt-2">{files.map((f, i) => (
+                    <span key={i} className="text-[11px] px-2.5 py-1 rounded-lg bd-card-surface flex items-center gap-1.5 text-[var(--text-primary)]">{f.name}<button onClick={() => setFiles((p) => p.filter((_, k) => k !== i))}><X className="w-3 h-3" /></button></span>
+                  ))}</div>}
+                </ReqCard>
+              </>
+            )}
+
+            {step === 3 && (
+              !showAddrPicker ? (
+                <>
+                  <div className="rounded-2xl overflow-hidden aspect-[16/9] bg-cover bg-center bd-card-surface" style={{ backgroundImage: "url(https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=900&q=70)" }} />
+                  <ReqCard title="Select your location" right={<button onClick={() => setShowAddrPicker(true)} data-testid="req-change-location" className="text-sm font-semibold bd-req-accent">Change →</button>}>
+                    {address ? (
+                      <div className="flex items-start gap-2"><MapPin className="w-4 h-4 bd-req-accent mt-0.5" /><div className="text-sm font-semibold text-[var(--text-primary)]">{address.label}</div></div>
+                    ) : <div className="text-sm text-[var(--text-secondary)]">No location selected yet.</div>}
+                    {serviceable !== null && (
+                      <div className={`mt-3 text-xs font-semibold px-2.5 py-1.5 rounded-lg inline-block`} style={{ background: "var(--surface-secondary)", border: "1px solid var(--border-primary)", color: serviceable ? "var(--status-success)" : "var(--status-warning)" }}>
+                        {serviceable ? "Construction Available" : "Construction coming soon — architecture continues"}
+                      </div>
+                    )}
+                  </ReqCard>
+                </>
+              ) : (
+                <div data-testid="req-address-picker">
+                  <button onClick={() => setShowAddrPicker(false)} className="flex items-center gap-2 text-sm mb-3 text-[var(--text-primary)]"><ArrowLeft className="w-4 h-4" /> Back to map</button>
+                  <div className="space-y-2">
+                    {serviceAreas.map((a) => (
+                      <button key={a.id} data-testid={`req-area-${a.id}`} onClick={() => { setAddress(a); setServiceable(true); setShowAddrPicker(false); }}
+                        className="bd-req-pick w-full flex items-start gap-3 p-3.5 rounded-xl text-left">
+                        <MapPin className="w-4 h-4 bd-req-accent mt-0.5" /><div className="text-sm font-semibold text-[var(--text-primary)]">{a.label}</div>
+                      </button>
+                    ))}
+                    <button data-testid="req-area-other" onClick={() => { setAddress({ label: "Other location" }); setServiceable(false); setShowAddrPicker(false); }}
+                      className="w-full p-3.5 rounded-xl border border-dashed text-sm text-[var(--text-secondary)]" style={{ borderColor: "var(--border-strong)" }}>My area isn't listed (architecture still available)</button>
+                  </div>
                 </div>
-              </Card>
-              <div className="flex gap-3">
-                <button data-testid="req-edit" onClick={() => setStep(1)} className="flex-1 py-3 rounded-full border border-[var(--border-primary,#292929)] font-semibold text-sm">Edit Requirement</button>
-                <button data-testid="req-continue-project" onClick={() => setStep(8)} className="flex-1 py-3 rounded-full bg-[#C9A24A] text-black font-bold text-sm">Continue With This Project</button>
+              )
+            )}
+
+            {step === 4 && (
+              <>
+                <ReqCard title="Do you also need turnkey construction?">
+                  <ReqSegmented options={["Yes", "No", "Maybe Later"]} value={construction.need} onChange={(v) => setConstruction({ ...construction, need: v })} testid="req-construction-need" />
+                </ReqCard>
+                <ReqCard title="Plan as per standard Vastu?">
+                  <ReqSegmented options={["Yes", "No"]} value={construction.vastu} onChange={(v) => setConstruction({ ...construction, vastu: v })} testid="req-vastu" />
+                </ReqCard>
+                <ReqCard title="Front facing">
+                  <div className="grid grid-cols-4 gap-2">{FACINGS.map((f) => (
+                    <button key={f} data-testid={`req-facing-${f}`} onClick={() => setConstruction({ ...construction, facing: f })} className={`bd-req-seg ${construction.facing === f ? "bd-req-seg--on" : ""} text-xs py-2 rounded-lg`}>{f}</button>
+                  ))}</div>
+                </ReqCard>
+                <ReqCounter label="Family Members" value={construction.family} onChange={(v) => setConstruction({ ...construction, family: v })} testid="req-family" />
+                <ReqCounter label="Bike Parking" value={construction.bike} onChange={(v) => setConstruction({ ...construction, bike: v })} testid="req-bike" />
+                <ReqCounter label="Car Parking" value={construction.car} onChange={(v) => setConstruction({ ...construction, car: v })} testid="req-car" />
+              </>
+            )}
+
+            {step === 5 && (
+              <>
+                <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1" data-testid="req-floor-tabs">
+                  {Array.from({ length: storeys + 1 }).map((_, i) => (
+                    <button key={i} data-testid={`req-floor-tab-${i}`} onClick={() => setActiveFloor(i)} className={`bd-req-seg ${activeFloor === i ? "bd-req-seg--on" : ""} shrink-0 px-4 py-2 rounded-full text-xs font-semibold`}>{floorName(i)}</button>
+                  ))}
+                </div>
+                <ReqCard title="Purpose of this floor">
+                  <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1" data-testid="req-purpose">
+                    {PURPOSES.map((p) => (
+                      <button key={p} onClick={() => updFloor(activeFloor, { purpose: p })} className={`bd-req-chip ${floors[activeFloor]?.purpose === p ? "bd-req-chip--on" : ""} shrink-0 px-3.5 py-2 rounded-full text-xs font-semibold`}>{p}</button>
+                    ))}
+                  </div>
+                </ReqCard>
+                <ReqCounter label="Bedrooms" value={floors[activeFloor]?.bedrooms || 0} onChange={(v) => updFloor(activeFloor, { bedrooms: v })} testid="req-bedrooms" />
+                <ReqCounter label="Master Bedrooms" value={floors[activeFloor]?.masterBedrooms || 0} onChange={(v) => updFloor(activeFloor, { masterBedrooms: v })} testid="req-master" />
+                <ReqCard title="Indoor Amenities"><ReqChips items={INDOOR} selected={floors[activeFloor]?.indoor || []} onToggle={(v) => toggleFloorItem(activeFloor, "indoor", v)} /></ReqCard>
+                <ReqCard title="Outdoor Amenities"><ReqChips items={OUTDOOR} selected={floors[activeFloor]?.outdoor || []} onToggle={(v) => toggleFloorItem(activeFloor, "outdoor", v)} /></ReqCard>
+                <ReqCard title="Additional Information">
+                  <div className="bd-req-field rounded-xl px-3.5 py-2">
+                    <textarea data-testid="req-floor-notes" value={floors[activeFloor]?.notes || ""} onChange={(e) => updFloor(activeFloor, { notes: e.target.value })} placeholder="Add any additional requirements for this floor…" rows={3}
+                      className="w-full bg-transparent outline-none text-sm resize-none" />
+                  </div>
+                </ReqCard>
+              </>
+            )}
+
+            {step === 6 && wantsElevation && (
+              <>
+                <ReqCard title="Select elevation style" subtitle="Choose the look that fits your vision">
+                  <div className="grid grid-cols-2 gap-3">{ELEV_STYLES.map((s) => (
+                    <ReqImageCard key={s} testid={`req-elev-style-${s}`} image={ELEV_IMAGES[s]} label={s.replace(" Design", "")} sublabel={`${s}`} selected={elevation.style === s} onClick={() => setElevation({ ...elevation, style: s })} />
+                  ))}</div>
+                </ReqCard>
+                <ReqCard title="Select elevation views">
+                  <ReqChips items={ELEV_VIEWS} selected={elevation.views} onToggle={(v) => setElevation({ ...elevation, views: elevation.views.includes(v) ? elevation.views.filter((x) => x !== v) : [...elevation.views, v] })} />
+                </ReqCard>
+              </>
+            )}
+
+            {step === 7 && (
+              <div className="space-y-4" data-testid="req-summary">
+                <ReqCard title="Floor-by-floor plan">
+                  <div className="space-y-2.5">
+                    {floors.slice(0, storeys + 1).map((f, i) => (
+                      <div key={i} className="flex items-start justify-between gap-3 py-2 border-b last:border-0" style={{ borderColor: "var(--border-divider)" }}>
+                        <div>
+                          <div className="text-sm font-semibold text-[var(--text-primary)]">{floorName(i)}</div>
+                          <div className="text-[11px] text-[var(--text-secondary)]">{f.purpose} · {f.area ? `${f.area} sq.ft.` : "—"} · {(f.bedrooms || 0)} BR</div>
+                        </div>
+                        <div className="text-[11px] text-[var(--text-secondary)] text-right max-w-[45%]">
+                          {[...(f.indoor || []), ...(f.outdoor || [])].slice(0, 3).join(", ") || "No amenities"}
+                          {([...(f.indoor || []), ...(f.outdoor || [])].length > 3) ? ` +${[...(f.indoor || []), ...(f.outdoor || [])].length - 3}` : ""}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ReqCard>
+                {wantsElevation && elevation.style && (
+                  <ReqCard title="Elevation">
+                    <ReqRow k="Style" v={elevation.style} />
+                    <ReqRow k="Views" v={elevation.views.join(", ") || "—"} />
+                  </ReqCard>
+                )}
+                {/* Full price breakdown for mobile (right panel shows it on desktop) */}
+                <div className="lg:hidden"><Summary /></div>
               </div>
-            </div>
-          )}
+            )}
 
-          {step === 8 && (
-            <div className="space-y-3" data-testid="req-registration">
-              <button disabled className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-[var(--border-primary,#292929)] text-[var(--text-secondary,#B5B5B5)] opacity-60 cursor-not-allowed" title="Not configured">
-                Continue with Google
-              </button>
-              <div className="flex items-center gap-2 text-[11px] text-[var(--text-secondary,#B5B5B5)]"><span className="flex-1 h-px bg-[var(--border-primary,#292929)]" />or continue with email<span className="flex-1 h-px bg-[var(--border-primary,#292929)]" /></div>
-              <Input placeholder="Full Name" value={reg.name} testid="req-reg-name" onChange={(v) => setReg({ ...reg, name: v })} />
-              <Input placeholder="Mobile Number (10 digits)" value={reg.mobile} testid="req-reg-mobile" onChange={(v) => setReg({ ...reg, mobile: v.replace(/[^\d]/g, "") })} />
-              <Input placeholder="Email" type="email" value={reg.email} testid="req-reg-email" onChange={(v) => setReg({ ...reg, email: v })} icon={<Mail className="w-4 h-4" />} />
-              <Input placeholder="Password (min 6)" type="password" value={reg.password} testid="req-reg-password" onChange={(v) => setReg({ ...reg, password: v })} />
-              <button disabled className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-[var(--border-primary,#292929)] text-[var(--text-secondary,#B5B5B5)] opacity-60 cursor-not-allowed" data-testid="req-phone-disabled">
-                <PhoneIcon className="w-4 h-4" /> Continue with Phone <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[var(--border-primary,#292929)]">Coming Soon</span>
-              </button>
-              <button data-testid="req-create-account" disabled={submitting} onClick={handleRegister} className="w-full py-3 rounded-full bg-[#C9A24A] text-black font-bold flex items-center justify-center disabled:opacity-60">
-                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Create Account"}
-              </button>
+            {step === 8 && (
+              <div className="space-y-3" data-testid="req-registration">
+                <button disabled className="bd-req-ghost w-full flex items-center justify-center gap-2 py-3 rounded-xl opacity-55 cursor-not-allowed" title="Not configured">
+                  Continue with Google
+                </button>
+                <div className="flex items-center gap-2 text-[11px] text-[var(--text-secondary)]"><span className="flex-1 h-px" style={{ background: "var(--border-primary)" }} />or continue with email<span className="flex-1 h-px" style={{ background: "var(--border-primary)" }} /></div>
+                <ReqField placeholder="Full Name" value={reg.name} testid="req-reg-name" onChange={(v) => setReg({ ...reg, name: v })} />
+                <ReqField placeholder="Mobile Number (10 digits)" value={reg.mobile} inputMode="numeric" testid="req-reg-mobile" onChange={(v) => setReg({ ...reg, mobile: v.replace(/[^\d]/g, "") })} />
+                <ReqField placeholder="Email" type="email" value={reg.email} testid="req-reg-email" onChange={(v) => setReg({ ...reg, email: v })} icon={<Mail className="w-4 h-4" />} />
+                {!user?.id && <ReqField placeholder="Password (min 6)" type="password" value={reg.password} testid="req-reg-password" onChange={(v) => setReg({ ...reg, password: v })} />}
+                <button disabled className="bd-req-ghost w-full flex items-center justify-center gap-2 py-3 rounded-xl opacity-55 cursor-not-allowed" data-testid="req-phone-disabled">
+                  <PhoneIcon className="w-4 h-4" /> Continue with Phone <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: "var(--surface-secondary)" }}>Coming Soon</span>
+                </button>
+                {/* mobile: show the create button inline too */}
+                <div className="lg:hidden pt-1"><CtaButtons full /></div>
+              </div>
+            )}
+          </div>
+
+          {/* Mobile footer bar */}
+          {step !== 8 && (
+            <div className="lg:hidden shrink-0 border-t p-4 flex items-center justify-between gap-3" style={{ borderColor: "var(--border-divider)", background: "var(--background-secondary)" }}>
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-[var(--text-secondary)]">Est. Charges</div>
+                <div className="text-base font-bold bd-req-accent" data-testid="req-price-bar">{rupee(total)}</div>
+              </div>
+              <div className={secondary ? "flex-1" : ""}><CtaButtons /></div>
             </div>
           )}
         </div>
 
-        {/* Sticky price bar / Continue */}
-        <div className="shrink-0 border-t border-[var(--border-divider,#242424)] p-4">
-          {showPriceBar && (
-            <div className="flex items-center justify-between gap-3">
-              <div><div className="text-[11px] text-[var(--text-secondary,#B5B5B5)]">Architectural Services</div><div className="text-sm font-bold text-[#C9A24A]" data-testid="req-price-bar">{rupee(total)}</div></div>
-              <button data-testid="req-next" onClick={goNext} className="px-8 py-3 rounded-full bg-[#C9A24A] text-black font-bold text-sm">Next</button>
-            </div>
-          )}
-          {step === 1 && <button data-testid="req-next" onClick={goNext} className="w-full py-3 rounded-full bg-[#C9A24A] text-black font-bold">Continue</button>}
-        </div>
+        {/* RIGHT — live summary (desktop) */}
+        <aside className="bd-req-summary hidden lg:flex lg:flex-col lg:w-[40%]">
+          <div className="flex-1 overflow-y-auto p-7">
+            <Summary compact={step !== 7} />
+          </div>
+          <div className="shrink-0 border-t p-6" style={{ borderColor: "var(--border-primary)" }}>
+            <CtaButtons full />
+            <p className="text-[11px] text-[var(--text-muted)] text-center mt-3">Free estimate · No obligation · Data saved securely</p>
+          </div>
+        </aside>
       </div>
     </div>
   );
   return createPortal(shell, document.body);
-}
-
-function Card({ title, right, children }) {
-  return (
-    <div className="rounded-2xl border border-[var(--border-primary,#292929)] bg-[var(--background-card,#151515)] p-4">
-      <div className="flex items-center justify-between mb-3"><h3 className="text-sm font-bold">{title}</h3>{right}</div>
-      {children}
-    </div>
-  );
-}
-function Input({ placeholder, value, onChange, type = "text", testid, icon }) {
-  return (
-    <div className="relative">
-      {icon && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary,#B5B5B5)]">{icon}</span>}
-      <input data-testid={testid} type={type} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)}
-        className={`w-full bg-[var(--background-elevated,#1A1A1A)] border border-[var(--border-primary,#292929)] rounded-xl py-2.5 text-sm ${icon ? "pl-9 pr-3" : "px-3"} focus:outline-none focus:border-[#C9A24A]`} />
-    </div>
-  );
-}
-function Segmented({ options, value, onChange, testid }) {
-  return (
-    <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${options.length},1fr)` }} data-testid={testid}>
-      {options.map((o) => (
-        <button key={o} data-testid={`${testid}-${o.replace(/\s+/g, "-").toLowerCase()}`} onClick={() => onChange(o)} className={`py-2 rounded-lg text-sm border ${value === o ? "bg-[#C9A24A] text-black border-[#C9A24A]" : "border-[var(--border-primary,#292929)]"}`}>{o}</button>
-      ))}
-    </div>
-  );
-}
-function Counter({ label, value, onChange, testid }) {
-  return (
-    <div className="flex items-center justify-between rounded-2xl border border-[var(--border-primary,#292929)] bg-[var(--background-card,#151515)] px-4 py-3" data-testid={testid}>
-      <span className="text-sm font-medium">{label}</span>
-      <div className="flex items-center gap-3">
-        <button onClick={() => onChange(Math.max(0, value - 1))} data-testid={`${testid}-minus`} className="w-8 h-8 grid place-items-center rounded-full border border-[var(--border-primary,#292929)]"><Minus className="w-4 h-4" /></button>
-        <span className="w-6 text-center font-bold">{value}</span>
-        <button onClick={() => onChange(value + 1)} data-testid={`${testid}-plus`} className="w-8 h-8 grid place-items-center rounded-full border border-[var(--border-primary,#292929)]"><Plus className="w-4 h-4" /></button>
-      </div>
-    </div>
-  );
-}
-function Chips({ items, selected, onToggle }) {
-  return (
-    <div className="flex flex-wrap gap-2">
-      {items.map((it) => {
-        const on = selected.includes(it);
-        return <button key={it} onClick={() => onToggle(it)} className={`text-xs px-3 py-1.5 rounded-full border ${on ? "bg-[#C9A24A] text-black border-[#C9A24A]" : "border-[var(--border-primary,#292929)]"}`}>{it}</button>;
-      })}
-    </div>
-  );
-}
-function Row({ k, v }) {
-  return <div className="flex items-center justify-between py-1.5 text-sm border-b border-[var(--border-divider,#242424)] last:border-0"><span className="text-[var(--text-secondary,#B5B5B5)]">{k}</span><span className="font-medium">{v}</span></div>;
 }

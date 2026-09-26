@@ -2669,3 +2669,126 @@ html[data-theme="dark"] .bd-theme-toast__desc { color: #B5B5B5 !important; }
 @media (prefers-reduced-motion: reduce) {
   .hero-mode-btn { transition: none !important; }
 }
+
+
+/* ══════════════════════════════════════════════════════════════════
+   REQUIREMENT FORM — "Plan Your Dream Home" multi-step flow.
+   Premium BDesigner DNA. Fully theme-aware (light/dark) via tokens.
+   Custom `bd-req-*` classes deliberately avoid the arbitrary
+   `bg-[#C9A24A]` / `text-[#C9A24A]` patterns so the global gold→mono
+   neutralizer never rewrites them — gold stays gold here on purpose.
+   ══════════════════════════════════════════════════════════════════ */
+.bd-req-shell {
+  background: var(--background-secondary);
+  border: 1px solid var(--border-primary);
+}
+.bd-req-summary {
+  background: var(--background-primary);
+}
+@media (min-width: 1024px) {
+  .bd-req-summary { border-left: 1px solid var(--border-primary); }
+}
+/* Gold accent (kept as-is — survives neutralizer) */
+.bd-req-accent {
+  color: var(--accent-gold) !important;
+  -webkit-text-fill-color: var(--accent-gold) !important;
+}
+.bd-req-accent-bg {
+  background-color: var(--accent-gold) !important;
+  color: #0B0B0B !important;
+  -webkit-text-fill-color: #0B0B0B !important;
+}
+/* Primary CTA — solid warm gold, dark ink text, both themes */
+.bd-req-cta {
+  background: var(--accent-gold) !important;
+  color: #0B0B0B !important;
+  -webkit-text-fill-color: #0B0B0B !important;
+  font-weight: 700;
+  transition: filter .18s ease, transform .16s ease;
+}
+.bd-req-cta:hover:not(:disabled) { filter: brightness(1.07); }
+.bd-req-cta:active:not(:disabled) { transform: scale(0.985); }
+.bd-req-cta:disabled { opacity: .55; cursor: not-allowed; }
+.bd-req-cta svg { color: #0B0B0B !important; }
+/* Secondary / ghost button */
+.bd-req-ghost {
+  background: transparent;
+  border: 1px solid var(--border-primary);
+  color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+  transition: border-color .15s ease, background .15s ease;
+}
+.bd-req-ghost:hover { border-color: var(--border-strong); background: var(--surface-secondary); }
+/* Progress track */
+.bd-req-track { background: var(--border-primary); }
+.bd-req-track-on { background: var(--accent-gold); }
+/* Selectable image / option card */
+.bd-req-pick {
+  background: var(--background-card);
+  border: 1px solid var(--border-primary);
+  transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease;
+}
+.bd-req-pick:hover { border-color: var(--border-strong); transform: translateY(-2px); }
+.bd-req-pick--on {
+  border-color: var(--accent-gold) !important;
+  box-shadow: 0 0 0 1px var(--accent-gold);
+}
+/* Icon button (close / back) */
+.bd-req-iconbtn {
+  background: var(--background-elevated);
+  border: 1px solid var(--border-primary);
+  color: var(--text-primary) !important;
+  transition: border-color .15s ease, background .15s ease;
+}
+.bd-req-iconbtn:hover { border-color: var(--border-strong); background: var(--surface-secondary); }
+/* Field wrapper — reuse token behaviour of bd-af-field */
+.bd-req-field {
+  background: var(--input-background);
+  border: 1px solid var(--input-border);
+  transition: border-color .15s ease;
+}
+.bd-req-field:focus-within { border-color: var(--border-strong) !important; }
+.bd-req-field input,
+.bd-req-field textarea {
+  background: transparent;
+  color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+}
+.bd-req-field input::placeholder,
+.bd-req-field textarea::placeholder { color: var(--input-placeholder) !important; -webkit-text-fill-color: var(--input-placeholder) !important; }
+/* Segmented option */
+.bd-req-seg {
+  background: var(--background-card);
+  border: 1px solid var(--border-primary);
+  color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+  transition: border-color .15s ease, background .15s ease;
+}
+.bd-req-seg:hover { border-color: var(--border-strong); }
+.bd-req-seg--on {
+  background: var(--accent-gold) !important;
+  border-color: var(--accent-gold) !important;
+  color: #0B0B0B !important;
+  -webkit-text-fill-color: #0B0B0B !important;
+}
+/* Chip */
+.bd-req-chip {
+  background: var(--background-card);
+  border: 1px solid var(--border-primary);
+  color: var(--text-secondary) !important;
+  -webkit-text-fill-color: var(--text-secondary) !important;
+  transition: border-color .15s ease, color .15s ease;
+}
+.bd-req-chip:hover { border-color: var(--border-strong); color: var(--text-primary) !important; -webkit-text-fill-color: var(--text-primary) !important; }
+.bd-req-chip--on {
+  background: var(--accent-gold) !important;
+  border-color: var(--accent-gold) !important;
+  color: #0B0B0B !important;
+  -webkit-text-fill-color: #0B0B0B !important;
+}
+/* Divider row inside cards */
+.bd-req-divide > * + * { border-top: 1px solid var(--border-divider); }
+/* Entrance */
+@keyframes bdReqIn { from { opacity: 0; transform: translateY(14px) scale(.99); } to { opacity: 1; transform: none; } }
+.bd-req-enter { animation: bdReqIn 360ms cubic-bezier(0.22,1,0.36,1) both; }
+@media (prefers-reduced-motion: reduce) { .bd-req-enter { animation: none; } }
