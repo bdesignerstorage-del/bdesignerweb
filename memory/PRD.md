@@ -41,3 +41,9 @@
 - Hero timeline config is admin-configurable via GET /api/settings -> hero (states timestamps 0/19/22, total 23s); HeroModeContext consumes it
 - Copy alignment: mobile sticky CTA now 'Plan Your Dream Home'
 - NOTE: hero video/logo use existing public/ assets (GitHub access to new uploads was unavailable this session)
+
+## 2026-09-26 — Hero Assets + Theme Logo Update
+- User uploaded Hero Video.mp4 (mobile) + red logo (light theme) + white logo (dark theme) via chat attachments
+- hero-portrait.mp4 replaced with new mobile hero video (14.6 MB, served 200); landscape unchanged until user provides it
+- Theme-based logo swap: white logo on dark theme, red logo on light theme (Navbar + Footer); intro keeps white logo; old CSS brightness(0) filter approach replaced with bd-logo-light/bd-logo-dark display toggles
+- settings.logo_light=/bdesigner-logo-red.png, logo_dark=/bdesigner-logo-white.png (admin-config foundation)

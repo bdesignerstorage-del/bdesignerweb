@@ -25,7 +25,6 @@ export default function Footer() {
   const socials = (settings?.footer?.social || []).filter(
     (s) => s && s.url && (s.visible !== false)
   );
-  const logoSrc = "/bdesigner-logo-white.png";
 
   return (
     <footer data-testid="main-footer" className="relative z-10 border-t border-white/10 bg-[#0D0B08] text-white">
@@ -33,11 +32,18 @@ export default function Footer() {
         <div className="col-span-2">
           <Link to="/" className="flex items-center gap-2" data-testid="footer-logo">
             <img
-              src={logoSrc}
+              src="/bdesigner-logo-white.png"
               alt={siteName}
-              className="h-10 sm:h-11 w-auto object-contain select-none"
+              className="bd-logo-dark h-10 sm:h-11 w-auto object-contain select-none"
               draggable="false"
               data-testid="footer-logo-img"
+            />
+            <img
+              src="/bdesigner-logo-red.png"
+              alt={siteName}
+              className="bd-logo-light h-10 sm:h-11 w-auto object-contain select-none"
+              draggable="false"
+              data-testid="footer-logo-img-light"
             />
           </Link>
           <p

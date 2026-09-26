@@ -1747,8 +1747,12 @@ html[data-theme="light"] [data-testid="main-navbar"] {
 html[data-theme="light"] [data-testid="main-navbar"] .nav-link,
 html[data-theme="light"] [data-testid="main-navbar"] button { color: #111111 !important; }
 
-/* White brand logo → solid black on the light navbar (stays white over dark hero video / intro) */
-html[data-theme="light"] [data-testid="main-navbar"] img[src*="logo-white"] { filter: brightness(0) !important; }
+/* Brand logo swaps with the site theme — white logo on dark surfaces,
+   red logo on light surfaces (navbar + footer). The intro keeps the white
+   logo over its dark overlay, so it is excluded from the swap. */
+.bd-logo-light { display: none !important; }
+html[data-theme="light"] .bd-logo-dark { display: none !important; }
+html[data-theme="light"] .bd-logo-light { display: block !important; }
 
 /* Footer — full light-mode treatment (kept dark in dark mode) */
 html[data-theme="light"] footer[data-testid="main-footer"] {
@@ -1761,7 +1765,6 @@ html[data-theme="light"] footer[data-testid="main-footer"] [class*="text-white"]
 }
 html[data-theme="light"] footer[data-testid="main-footer"] h4 { color: #111111 !important; }
 html[data-theme="light"] footer[data-testid="main-footer"] [class*="border-white"] { border-color: #E5E5E5 !important; }
-html[data-theme="light"] footer[data-testid="main-footer"] img[src*="logo-white"] { filter: brightness(0) !important; }
 
 
 /* ══════════════════════════════════════════════════════════════════════════

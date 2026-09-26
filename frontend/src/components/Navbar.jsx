@@ -113,9 +113,16 @@ export default function Navbar() {
             <img
               src="/bdesigner-logo-white.png"
               alt={settings?.site_name || "BDesigner"}
-              className="h-8 sm:h-10 w-auto max-w-[130px] sm:max-w-none object-contain select-none"
+              className="bd-logo-dark h-8 sm:h-10 w-auto max-w-[130px] sm:max-w-none object-contain select-none"
               draggable="false"
               data-testid="navbar-logo-img"
+            />
+            <img
+              src="/bdesigner-logo-red.png"
+              alt={settings?.site_name || "BDesigner"}
+              className="bd-logo-light h-8 sm:h-10 w-auto max-w-[130px] sm:max-w-none object-contain select-none"
+              draggable="false"
+              data-testid="navbar-logo-img-light"
             />
           </Link>
         </div>
