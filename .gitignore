@@ -26,3 +26,8 @@ venv/
 *.log
 uploads/
 backend/uploads/
+*.env
+credentials.json
+*.pem
+*.key
+.credentials
