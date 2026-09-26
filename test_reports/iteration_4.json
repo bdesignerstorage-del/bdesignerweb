@@ -1,0 +1,42 @@
+{
+  "summary": "Iteration 4 targeted correction verification for BDesigner. Backend (9 pytest cases) and frontend (Requirement Form + Homepage Guarantees/Why-Choose) both pass all 20+ checklist items. Backend content migration replaced legacy guarantee + comparison rows with the new BDesigner product content. POST /api/requirement/price for architectural + 1800 sqft returns exactly \u20b921,600 which matches the frontend live estimate. Frontend: 6 correct guarantee tabs, 9 correct why-choose rows, no legacy titles anywhere, tab icons neutral (dark in light theme = rgb(17,17,17), CTA in dark theme is near-white rgb(245,245,245) on black text rgb(11,11,11) matching spec). Requirement Form: selected service card shows subtle neutral surface (bg rgb(21,21,21), 1px rgb(41,41,41) border, no gold border) + single gold check svg; ReqField input wrappers all measure 54px; Step 2 base area \u22481,200 sqft auto-populates GF, GF persists when adding storeys, FF starts blank, Next disabled with inline req-floor-error-1 shown, total = sum of floors, summary total = \u20b921,600 matches backend exactly; Step 3 has no fake map image, req-address-picker opens on req-change-location, picking a listed area shows 'Construction available'; Step 4 facing 52px + Vastu 52px; Step 5 purpose buttons 54px with 5 options in 2-col grid, 'Double Height Lobby' chip renders at ~61px height without clipping; Step 7 desktop shows summary once, mobile sticky footer contains only Edit + Continue buttons with NO duplicated price bar (req-price-bar not visible on step 7 mobile); Step 8 req-phone-disabled COMPLETELY removed, req-google-btn present with white bg + neutral border + 4 svg child nodes for the multicolor Google G, clicking it does NOT store any auth token (honest, no fake login), and email registration through req-create-account creates a new client account and closes the modal.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_bdesigner_public.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Non-blocking (carried over from iter_3): RequirementForm.jsx is 579 lines and mixes step config, autosave, submit and CTA rendering. Consider splitting per-step components + a data-driven STEPS array with validators to reduce the growing if-chains in goNext().",
+    "Non-blocking (carried over from iter_3): CtaButtons is rendered twice in the DOM (mobile footer + desktop aside) so [data-testid='req-next'] etc. resolve to two nodes. Only one is visible per breakpoint (functionally correct), but Playwright's default first-match hits the hidden mobile one. Recommend either suffixing the desktop testid or conditionally rendering only one instance based on a JS media query.",
+    "Non-blocking: 'req-purpose' buttons at Step 5 do not have per-option data-testids (only the parent grid has data-testid='req-purpose'). Individual purpose options are not addressable for automation and analytics."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_bdesigner_public.py",
+    "/app/memory/test_credentials.md",
+    "/app/test_reports/iteration_4.json"
+  ],
+  "success_rate": { "backend": "100% (9/9)", "frontend": "100% (all 20+ checklist items verified)" },
+  "test_credentials": "bdtest+iter4_1790461379@example.com / Test@1234 (client account created this run via Step 8 email registration; recorded in /app/memory/test_credentials.md)",
+  "seed_data_creation": "One new client account was created via UI Step 8 email registration path.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 4 correction pass fully passed. Backend content migration for guarantee/comparison_feature is idempotent (see homepage_cms.py lines 491-526) and runs at seed_homepage_defaults. GET /api/homepage/sections is the source of truth for both sections. POST /api/requirement/price expects {service_codes:[\"architectural\", ...], total_area: N}; total is per_sqft rate x area (min charge floor applies for services with minimum_charge). Frontend gotchas still valid: data-testid=\"req-next\" (and req-edit, req-create-account, req-price-bar) exist in BOTH mobile footer and desktop aside; always target ':visible .first'. On desktop 1920x1080 the mobile footer is display:none. On mobile viewport (390x844), Step 7 footer must contain ONLY Edit + Continue (no price bar). Google button is intentionally non-functional (honest info toast; no localStorage token set) - do NOT flag as broken auth.",
+  "detailed_evidence": {
+    "backend": "pytest 9 passed in 0.82s. Guarantees titles match spec exactly. Comparison titles match spec exactly and every row has meta.bdesigner='yes' + meta.others='partial'. /api/requirement/price {service_codes:[architectural], total_area:1800} -> total 21600.",
+    "form_step1": "req-service-architectural selected -> bg rgb(21,21,21), border rgb(41,41,41) 1px (neutral, no gold border), 1 inner svg (gold check). CTA dark theme bg rgb(245,245,245) color rgb(11,11,11).",
+    "form_step2": "dims 30x30x40x40 -> req-base-area '\u22481,200 sq.ft.', GF auto=1200, GF input wrapper=54px. storey_plus -> req-floor-area-1 blank, Next disabled, req-floor-error-1 visible. FF=800 -> req-total-area=1,800, req-summary-total=\u20b921,600 (matches backend 21600 exactly). GF still 1200 after adding FF.",
+    "form_step3": "No map images in [data-testid='requirement-form'] img. req-change-location opens req-address-picker; picking a listed area -> 'Construction Available'.",
+    "form_step4": "req-facing-East h=52px, req-vastu-yes h=52px, req-construction-need-yes clickable.",
+    "form_step5": "req-purpose has 5 buttons in 2-col grid, first btn h=54px. 'Double Height Lobby' amenity chip h=61 w=165 - fully readable.",
+    "form_step7_desktop": "req-summary visible, contains Architectural Plan \u20b914,400 (12 x 1200 sqft path without FF this run).",
+    "form_step7_mobile": "At 390x844, mobile footer shows req-edit and Continue button; req-price-bar NOT visible on step 7 (no duplicated EST. CHARGES block).",
+    "form_step8": "req-phone-disabled COUNT=0 (removed). req-google-btn visible bg rgb(255,255,255) border rgb(218,220,224), 4 svg child paths (multicolor G). Clicking google btn -> no auth token stored (null). req-reg-name/mobile/email/password wrappers all 54px. req-create-account submitted; modal closed; account bdtest+iter4_1790461379@example.com created."
+  },
+  "rca of the issue": "N/A \u2014 no defects found in this iteration."
+}

@@ -70,3 +70,18 @@
 - P2 (ergonomic, not user-facing): CtaButtons renders req-next/req-edit/req-create-account in both mobile footer and desktop aside (only one visible per breakpoint). Optionally dedupe testids for cleaner automation.
 - P2: Real file/object storage for Requirement Form uploads (currently local draft only).
 - Deferred by user until form approved: Client Dashboard (post-registration handoff), Admin/PM/Architect/Structural panels, Package Builder, Agreement, Construction Progress, Site Updates.
+
+## 2026-06 — Homepage Trust Content + Requirement Form Precision Fix — DONE, tested 100% (iteration_4.json, backend 9/9 + frontend all items)
+- HOMEPAGE Guarantees: replaced legacy items (Money Safety/No Delay/Fixed Pricing/Verified Professionals/Warranty) with 6 current items (Transparent Pricing, Dedicated Project Manager, Structured Design Review, Final Drawings + BOQ, Stage-wise Site Updates, Handover Documentation). Neutral monochrome icons. Data-driven + CMS-ready.
+- HOMEPAGE Why Choose: replaced legacy rows (Material Marketplace/Construction ERP/Digital BOQ/etc.) with 9 current differentiators, all BDesigner ✓ / Others PARTIAL. Kept comparison-table UI.
+- Backend: updated DEFAULT_GUARANTEES + DEFAULT_COMPARISON in homepage_cms.py + added idempotent content migration (title-set keyed) so existing DBs are force-updated once. GET /api/homepage/sections is source of truth.
+- REQUIREMENT FORM precision fixes:
+  - Global primary button system now matches Homepage sticky CTA via button-primary tokens (dark=white bg/black text, light=black bg/white text) — NOT gold. `.bd-req-cta` shared class.
+  - Service selection: removed gold border/glow; selected = subtle neutral surface + small gold check, no layout shift. Selection controls (segmented/chips/facing/purpose) now neutral selected surface (not gold fill).
+  - Icons neutral (theme-aware); gold reserved for eyebrow, price, progress, small check accent.
+  - Standard input size ~54px (ReqField everywhere). Facing 2-col ~52px, Purpose 2-col ~54px, amenities readable grid ~48px.
+  - Step 2 logic: calculated plot footprint = avg(front,back) × avg(left,right); auto-populates Ground Floor (editable); added storeys start BLANK; values persist; total built-up = sum of ALL floors; live charges compute from total (frontend matches backend). Next disabled + inline per-floor message until all floors valid.
+  - Step 3: removed fake map image → clean location card only.
+  - Step 7: removed duplicated bottom price block on mobile (only Edit + Continue).
+  - Step 8: removed "Continue with Phone" entirely; added prominent Google button with official multicolor G icon + honest "not connected yet" toast (no fake login); phone NUMBER field retained.
+- Global rules now encoded in `.bd-req-*` tokens/classes so future screens inherit the button + selection + icon system.

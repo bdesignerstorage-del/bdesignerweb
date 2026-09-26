@@ -462,7 +462,7 @@ export default function RequirementForm({ onClose }) {
                 <ReqCard title="Purpose of this floor">
                   <div className="grid grid-cols-2 gap-2.5" data-testid="req-purpose">
                     {PURPOSES.map((p) => (
-                      <button key={p} onClick={() => updFloor(activeFloor, { purpose: p })} className={`bd-req-seg ${floors[activeFloor]?.purpose === p ? "bd-req-seg--on" : ""} min-h-[54px] px-3 rounded-xl text-sm font-semibold`}>{p}</button>
+                      <button key={p} data-testid={`req-purpose-${p.replace(/\s+/g, "-").toLowerCase()}`} onClick={() => updFloor(activeFloor, { purpose: p })} className={`bd-req-seg ${floors[activeFloor]?.purpose === p ? "bd-req-seg--on" : ""} min-h-[54px] px-3 rounded-xl text-sm font-semibold`}>{p}</button>
                     ))}
                   </div>
                 </ReqCard>
