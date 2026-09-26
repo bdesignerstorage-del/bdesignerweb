@@ -85,3 +85,12 @@
   - Step 7: removed duplicated bottom price block on mobile (only Edit + Continue).
   - Step 8: removed "Continue with Phone" entirely; added prominent Google button with official multicolor G icon + honest "not connected yet" toast (no fake login); phone NUMBER field retained.
 - Global rules now encoded in `.bd-req-*` tokens/classes so future screens inherit the button + selection + icon system.
+
+## 2026-09-26 — Website CMS Phase 1 (Homepage) — DONE, tested 100% (iteration_5.json, backend 11/11 + frontend 12/12)
+- Dedicated admin auth: `/admin/login` (AdminLogin.jsx) — JWT login via POST /api/auth/login, rejects non-admin roles; admin shell at `/admin` (AdminPanel.jsx) bypasses public chrome (App.js ChromeFrame skips navbar/footer/intro for /admin routes); unauth /admin redirects to /admin/login.
+- Bootstrap admin `admin@bdesigner.com` seeded on startup (seed_admin in website_cms.py); temp password printed once to backend logs; creds stored in /app/memory/test_credentials.md.
+- Homepage CMS tab: collapsible editors for Hero (video/fallback/logo media + duration + state timeline) and all content sections (eyebrow/heading/subtitle/enabled + per-item title/value/desc/icon/image, reorder, hide/show).
+- Real media upload via Emergent Object Storage: POST /api/admin/media/upload (image/video/audio, size+ext validation) -> /api/media/<path> serving with cache headers; MediaField UI with progress bar.
+- Draft/Preview/Publish: cms_homepage_draft collection holds working copy; Preview opens `/?cms_preview=1` which renders the REAL public homepage with draft data (admin-token required, no leak without token); Publish atomically copies draft to published collections (homepage_section_settings, homepage_blocks, site_settings.hero/footer).
+- Backend test file: /app/backend/tests/test_website_cms.py (11 tests). Public UI unchanged — verified no layout regression.
+- Backlog notes (non-blocking): split AdminPanel.jsx as tabs grow; short-lived preview nonce instead of JWT for preview; Mongo transaction around publish delete+insert; login rate-limiting.

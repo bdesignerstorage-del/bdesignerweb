@@ -1,0 +1,40 @@
+{
+  "summary": "Iteration 5 — BDesigner Website CMS Phase 1 E2E verification (backend + frontend). Backend pytest (11/11 passed) covers admin login/role, admin authorization (401 no-token + 403 client-token) on all /api/admin/cms/* and media upload endpoints, CMS draft shape (all 7 sections with expected counts: trust_indicator=4, construction_step=8, guarantee=6, service_area=12, homeowner_review=6, comparison_feature=9, faq=6; meta has last_saved/last_published), media upload happy path (POST /api/admin/media/upload returns /api/media/bdesigner/cms/image/<uuid>.png that serves image/png), .txt/empty rejections (400), and the full draft→preview→publish→revert→publish round-trip proving (a) preview shows draft, (b) public GET /api/homepage/sections stays clean until publish, (c) publish updates public, (d) cleanup revert restores original title. Frontend Playwright verified: /admin/login renders admin-login-form on dark bg with NO public navbar, login as admin@bdesigner.com routes to /admin, admin-panel shows all 4 sidebar groups (MAIN/COMMERCIAL/WEBSITE/CONFIGURATION), only Website CMS is enabled, top bar has Preview/Save Draft/Publish, CMS tabs row (Homepage/Projects/.../SEO) renders and non-Homepage tabs show 'later phase' placeholder, cms-homepage loads the draft, Hero section has Hero Video / Fallback Image / Logo media fields + duration + 3 states, Guarantee expand-collapse works, editing cms-guarantee-heading marks 'Unsaved changes', Save Draft persists (survives reload), Publish updates public homepage / with the test heading, Preview opened in a new tab (/?cms_preview=1) rendered the DRAFT heading, revert+publish restored the original ('Assurance You Can Trust') on the public site, unauth /admin redirects to /admin/login after auth-me fails (dark login shell only, no public navbar), and /?cms_preview=1 in a fresh no-token context correctly falls back to the published content (no draft leakage). Test edit was fully cleaned up.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_website_cms.py",
+    "/app/test_reports/pytest/cms_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Non-blocking: AdminPanel.jsx is 345 lines and mixes admin shell + sidebar + CMS editor + collapsibles + icon picker in one file. As more CMS tabs (Projects/Homeowner Stories/etc) get built out, split into /admin/AdminShell.jsx, /admin/cms/HomepageEditor.jsx and a shared MediaField component to prevent >700-line growth.",
+    "Non-blocking: /api/admin/cms/homepage/preview requires admin auth, but the public Home.jsx fetches it only when URLSearchParams.cms_preview=1 AND a token exists in local/session storage. Any leaked admin token in a shared browser would render draft content publicly for that user — consider a short-lived preview cookie/nonce instead of reusing the JWT for /preview access.",
+    "Non-blocking: cms_publish (website_cms.py:229-244) deletes then insert_many per section without a Mongo transaction — if the insert fails between the delete and insert calls, the published section is left empty. Wrap in a session/transaction or stage into a temp collection then rename.",
+    "Non-blocking: seed_admin logs the bootstrap password at WARNING level to backend logs — acceptable one-time, but consider also flagging must_change_password=true (already set) and rate-limiting /api/auth/login for the admin email."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_website_cms.py",
+    "/app/test_reports/iteration_5.json"
+  ],
+  "success_rate": { "backend": "100% (11/11)", "frontend": "100% (12/12 requirements)" },
+  "test_credentials": "admin@bdesigner.com / 9-D6NIbzb8Gz0yHK (verified working; must_change_password currently false in DB). One transient client bdtest+cms<ts>@example.com / Test@1234 created during authz test.",
+  "seed_data_creation": "Backend created a fresh client account via /api/auth/register during the 403-test path (bdtest+cms<ts>@example.com). CMS draft was edited and republished; original 'Assurance You Can Trust' heading fully restored — no leftover test data on the live public site.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Auth /api/auth/login response is FLAT (has id/name/email/role/token at top level, NO 'user' wrapper) — assert data['role'] not data['user']['role']. AdminPanel initial open-state is { hero: true, guarantee: true } but on Homepage the Guarantee card renders collapsed until first click; treat presence of [data-testid=cms-guarantee-heading] as the truth of expanded state. window.open('/?cms_preview=1') triggers Home.jsx to call /admin/cms/homepage/preview only when bd_token is present in storage — a fresh context correctly falls back to published. Backend test file: /app/backend/tests/test_website_cms.py (uses tiny 1x1 PNG base64 for real upload). Existing regression suite /app/backend/tests/test_bdesigner_public.py still relevant for public content.",
+  "detailed_evidence": {
+    "backend_pytest": "11 passed in 5.35s — TestAdminAuth(3), TestAdminAuthorization(3 incl. media upload 401), TestCMSDraftShape(1), TestMediaUpload(3), TestDraftPreviewPublishRoundTrip(1 full flow with cleanup).",
+    "media_upload": "POST /api/admin/media/upload with 1x1 red PNG returned 200 with url=/api/media/bdesigner/cms/image/<uuid>.png; GET on that URL returned 200 image/png (Emergent object storage integration live).",
+    "draft_publish_flow": "Guarantee heading 'Assurance You Can Trust' -> 'TEST-HEAD-1790463879'. Preview (admin) showed draft. Public /api/homepage/sections stayed unchanged. After POST /publish, public updated. Revert save+publish restored original; final public GET shows original and no test value.",
+    "frontend_admin_shell": "sidebar MAIN/COMMERCIAL/WEBSITE/CONFIGURATION all rendered. Only Website CMS enabled (others have 'Later' badge). Top bar: Preview + Save Draft + Publish present.",
+    "frontend_cms_editor": "cms-homepage editor loaded. Hero section shows video / fallback image / logo MediaFields + total duration=23 + 3 states (Construction/Morning/Night). cms-section-guarantee expand -> cms-guarantee-heading input editable, 'Unsaved changes' pill appears on edit, Save clears it, reload preserves the edited value.",
+    "frontend_publish_roundtrip": "Test heading appeared on public /, preview page (/?cms_preview=1) opened in new tab rendered draft, revert publish restored original on public /, and /?cms_preview=1 in a fresh no-token context fell back to published (no draft leak).",
+    "frontend_auth_guard": "Unauth GET /admin -> after auth-me fails, navigate('/admin/login') fires; final URL /admin/login with data-testid=admin-login-form present and NO public navbar visible."
+  },
+  "rca of the issue": "N/A — Phase 1 CMS fully verified end-to-end. No defects found."
+}
