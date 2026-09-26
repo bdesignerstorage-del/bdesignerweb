@@ -1,0 +1,23 @@
+{
+  "summary": "Full backend + frontend verification of BDesigner homepage content/hero/theme correction pass. Backend pytest 4/4 pass: GET /api/settings returns hero { total_duration:23, default_state:'construction', states:[construction@0/light, morning@19/light, night@22/dark] } each with icon+label; GET /api/projects?limit=8 returns 6 seeded portfolio projects each with id/title/cover/style/budget/views/shares; GET /api/homepage/sections construction_step returns exactly the approved 8 titles in order (Share Requirement, Get Pricing, Create Account, Team Assigned, Design & Review, Final Drawings + BOQ, Construction Proposal, Construction Execution) with old titles (Free Consultation, Site Visit, Quotation) fully removed. Frontend verified at 1440 and 390: 8 process-card-* rendered with the exact expected titles + descriptions; 6 project-card-* render in recent-projects-section at both viewports; three hero-mode-* buttons render and clicking them updates document.documentElement[data-theme] correctly (night->dark, morning->light, construction->light); light-mode toast on nav-how-it-works has bg rgb(255,255,255) + color rgb(17,17,17) (readable), dark-mode toast has bg rgb(21,21,21) + color rgb(245,245,245) (readable); mobile sticky CTA reads exactly 'Plan Your Dream Home' and opens registration-modal (visible). No pageerror/console errors during theme toggles; only pre-login /auth/me 401 probes as expected.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "RegistrationModal (Plan Your Dream Home)", "issues": ["Expected Start Date field uses browser default date picker (input[type=date] mm/dd/yyyy) instead of shadcn Calendar component — minor consistency issue, out of scope of this pass"]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_bdesigner_public.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Hero timeline config is well-modeled in settings.hero — consider exposing an admin endpoint (PATCH /api/settings/hero) so ops can tune timestamps without a redeploy; migration in seed_homepage_defaults for construction_step is idempotent and safe.",
+    "Consider replacing native <input type='date'> in RegistrationModal with the existing shadcn Calendar + Popover for cross-browser consistency."
+  ],
+  "updated_files": ["/app/backend/tests/test_bdesigner_public.py"],
+  "success_rate": {"backend": "100% (4/4)", "frontend": "100% (9/9 scenarios)"},
+  "seed_data_creation": "None manual — backend startup seed_portfolio_projects() already seeded 6 projects and construction_step migration force-updated the 8 approved titles.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Default site theme is now 'light' at initial load because default_state=construction (theme=light). Night mode switches to dark. Hero video does NOT decode in headless Chromium (black frame) — DO NOT judge video seeking; verify buttons + data-theme attr instead. Preview URL supports ?nointro=1. Mobile sticky CTA data-testid=bd-sticky-cta-btn opens data-testid=registration-modal with title 'Plan Your Dream Home'. Toast styling controlled by .bd-theme-toast__toast in index.css. All 8 construction steps sourced from /api/homepage/sections construction_step."
+}

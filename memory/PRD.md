@@ -27,7 +27,17 @@
 - Mobile-only sticky bottom bar (BDStickyCta) still says "Book Free Consultation" — OUT OF SCOPE of correction pass, awaiting user approval to align
 
 ## Backlog
-- P1: Align BDStickyCta label with "Plan Your Dream Home" (pending user approval)
+- P1: When GitHub asset access is restored, replace hero video + logo with the user's newly uploaded assets
 - P1: Provide EMERGENT_LLM_KEY to enable Construction Advisor widget
 - P2: Build public pages: Projects, How It Works, About, FAQs, Contact (Phase 3)
+- P2: Website CMS "Homepage → Hero" tab to edit settings.hero timeline (foundation ready)
 - P2: Requirement Form (Phase 7), PWA manifest for real installability
+
+## 2026-09-26 — Homepage Content + Hero + Theme Pass (tested, iteration_2.json 100%)
+- Construction Process updated to approved 8-step flow (backend migration + new defaults in homepage_cms.py)
+- Trending Projects fixed: backend now seeds 6 portfolio projects (server.py seed_portfolio_projects); cards render both themes
+- Light-mode toast fixed: white bg + near-black text (sonner.jsx wired to ThemeContext + .bd-theme-toast CSS)
+- Hero: 3 mode buttons (Construction/Morning/Night) seek video to admin-configured timeline points and switch theme (night=dark, morning/construction=light)
+- Hero timeline config is admin-configurable via GET /api/settings -> hero (states timestamps 0/19/22, total 23s); HeroModeContext consumes it
+- Copy alignment: mobile sticky CTA now 'Plan Your Dream Home'
+- NOTE: hero video/logo use existing public/ assets (GitHub access to new uploads was unavailable this session)
