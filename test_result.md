@@ -1,3 +1,328 @@
+## 📐 FLOOR-WISE DIMENSIONS + AUTO BUILT-UP AREA + LIVE PRICING DEEP FIX (BACKEND · 2026-09-27 · Main Agent)
+
+SCOPE: Requirement Form Project Details — user enters ONLY 4 side dimensions per floor (Front/Right top row, Back/Left bottom row); floor built-up area is auto-calculated (max(front,back) × max(right,left)), never typed. Floor-wise pricing: ground_floor_rate for Ground Floor, additional_floor_rate for floors above; 3D Elevation Front view included by default, each additional view = front total × 80% (20% less). Backend is authoritative (recalculates from dims, never trusts frontend area) and stores structured floors + immutable pricing_snapshot. Files: backend/server.py (catalog floor rates + migrate_service_catalog_floor_rates + floor_area_from_dims + _service_charge_floorwise + _normalise_floors; /requirement/price + /requirement/submit upgraded), backend/tests/test_bdesigner_public.py (rewritten price tests), frontend RequirementForm.jsx + primitives.jsx.
+
+NO AUTH NEEDED (public endpoints). Base URL: use REACT_APP_BACKEND_URL from frontend/.env if present, else the current preview URL; all routes /api-prefixed.
+
+TEST PLAN (IN ORDER):
+1. GET /api/requirement/services → 200; each per_sqft service has ground_floor_rate AND additional_floor_rate. architectural 2.5/2.0, elevation_3d 3.5/3.0 + additional_view_discount_percent 20 + front_view_included true, structural 5/5, electrical 2.5/2.5, plumbing 2.5/2.5, interior 12/12; estimation pricing_type "free".
+2. POST /api/requirement/price {service_codes:["architectural"], floors:[{front:30,right:42,back:32,left:40},{front:28,right:38,back:30,left:36}]} → floor_areas [1344, 1140], area 2484, line amount 5640, floor_breakdown GF 1344×2.5=3360 / FF 1140×2.0=2280.
+3. POST price {service_codes:["elevation_3d"], floors:[GF,FF], elevation_views:["Front Design","Left Design"]} → front_view_total 8124, front_view_included true, additional_views has ONLY Left (Front never charged) amount 6499.20, line amount 14623.20.
+4. POST price {service_codes:["structural","electrical","plumbing","interior","estimation"], floors:[GF,FF]} → 12420 / 6210 / 6210 / 29808 / 0.
+5. ELEVATION ALL VIEWS: elevation_views ["Left Design","Right Design","Back Design"] → line amount = 8124 + 3×6499.20 = 27621.60.
+6. BACKEND AUTHORITY: POST /requirement/submit with floors carrying spoofed calculated_area 99999 + total_area 99999 → response total must equal floor-wise computed value (NOT from 99999). Then verify stored lead (via subsequent GET if available or re-submit) — floors stored with calculated_area 1344/1140, requirement.total_built_up_area 2484, pricing_snapshot present with floors, elevation_views, services (rate snapshots), grand_total.
+7. LEGACY FALLBACK: POST price {service_codes:["architectural"], total_area:2484} (no floors) → amount 6210 (single ground floor 2484×2.5).
+8. REGRESSION: GET /api/health → 200 ok; GET /api/homepage/sections → 200; GET /api/projects → 200.
+
+Expected: all pass. Report FAIL with endpoint+payload+response. Additive entry — do NOT edit the Testing Protocol section.
+
+## ✅ BACKEND TEST COMPLETE (2026-09-27 · Testing Agent): FLOOR-WISE DIMENSIONS + AUTO BUILT-UP AREA + LIVE PRICING DEEP FIX
+
+### Result
+**ALL 42 TESTS PASSED (100%)** — The FLOOR-WISE DIMENSIONS + AUTO BUILT-UP AREA + LIVE PRICING DEEP FIX backend module is working correctly. All 8 test plan steps executed successfully (29 custom tests) + all 13 existing pytest tests passed, covering service catalog floor rates, floor area calculation from 4-side dimensions, floor-wise pricing (ground_floor_rate/additional_floor_rate), 3D Elevation front view included + additional view discount, backend authority (recalculates areas, ignores spoofed values), immutable pricing snapshot storage, legacy fallback, and regression checks.
+
+### Test Environment
+- Backend URL: `http://localhost:8001`
+- Test date: 2026-09-27
+- Test file: `/app/backend_test_floor_pricing.py`
+- Custom tests: 29 (covering all 8 test plan steps with detailed verification)
+- Pytest suite: 13 tests in `backend/tests/test_bdesigner_public.py`
+- Total tests: 42
+- No auth needed (public endpoints)
+
+---
+
+### TEST RESULTS: ✅ ALL 42 TESTS PASSED (100%)
+
+#### Custom Test Suite (29 tests) — ✅ ALL PASSED
+
+**Step 1: GET /api/requirement/services — ✅ PASS (7 tests)**
+
+Service catalog with floor-wise rates verified:
+- ✅ Architectural: ground_floor_rate=2.5, additional_floor_rate=2.0 ✓
+- ✅ Elevation 3D: ground_floor_rate=3.5, additional_floor_rate=3.0, additional_view_discount_percent=20, front_view_included=true ✓
+- ✅ Structural: ground_floor_rate=5, additional_floor_rate=5 ✓
+- ✅ Electrical: ground_floor_rate=2.5, additional_floor_rate=2.5 ✓
+- ✅ Plumbing: ground_floor_rate=2.5, additional_floor_rate=2.5 ✓
+- ✅ Interior: ground_floor_rate=12, additional_floor_rate=12 ✓
+- ✅ Estimation: pricing_type="free" ✓
+
+**Step 2: POST /api/requirement/price - Architectural — ✅ PASS (4 tests)**
+
+Floor area calculation and floor-wise pricing:
+- ✅ Floor areas: [1344, 1140] (GF: max(30,32)×max(42,40)=1344, FF: max(28,30)×max(38,36)=1140) ✓
+- ✅ Total area: 2484 ✓
+- ✅ Line amount: ₹5,640 (1344×2.5 + 1140×2.0) ✓
+- ✅ Floor breakdown: GF 1344×2.5=3360, FF 1140×2.0=2280 ✓
+
+**Step 3: POST /api/requirement/price - Elevation 3D — ✅ PASS (4 tests)**
+
+3D Elevation with front view included + additional view discount:
+- ✅ Front view total: ₹8,124 (1344×3.5 + 1140×3.0) ✓
+- ✅ Front view included: true (never charged as additional) ✓
+- ✅ Additional views: Left Design only, amount=₹6,499.20 (8124×80%, 20% discount) ✓
+- ✅ Line amount: ₹14,623.20 (8124 + 6499.20) ✓
+
+**Step 4: POST /api/requirement/price - Other Services — ✅ PASS (5 tests)**
+
+Flat-rate services with floor-wise pricing:
+- ✅ Structural: ₹12,420 (2484×5) ✓
+- ✅ Electrical: ₹6,210 (2484×2.5) ✓
+- ✅ Plumbing: ₹6,210 (2484×2.5) ✓
+- ✅ Interior: ₹29,808 (2484×12) ✓
+- ✅ Estimation: ₹0 (FREE) ✓
+
+**Step 5: POST /api/requirement/price - Elevation All Views — ✅ PASS (2 tests)**
+
+3D Elevation with multiple additional views:
+- ✅ Line amount: ₹27,621.60 (8124 + 3×6499.20) ✓
+- ✅ Additional views count: 3 (Left, Right, Back — Front never charged) ✓
+
+**Step 6: POST /api/requirement/submit - Backend Authority — ✅ PASS (3 tests)**
+
+**CRITICAL: Backend recalculates areas, ignores spoofed values**
+- ✅ Total amount: ₹26,762.40 (architectural 5640 + elevation 8124 + 2×6499.20) — spoofed 99999 ignored ✓
+- ✅ Lead created with ID ✓
+- ✅ **Stored data verification (MongoDB):**
+  - requirement.floors[0].calculated_area = 1344 (NOT 99999) ✓
+  - requirement.floors[1].calculated_area = 1140 (NOT 99999) ✓
+  - requirement.total_built_up_area = 2484 (NOT 99999) ✓
+  - pricing_snapshot.floors: [1344, 1140] ✓
+  - pricing_snapshot.elevation_views: ["Left Design", "Right Design"] ✓
+  - pricing_snapshot.services[*].ground_floor_rate_snapshot present ✓
+  - pricing_snapshot.services[*].additional_floor_rate_snapshot present ✓
+  - pricing_snapshot.grand_total = ₹26,762.40 ✓
+  - Test lead deleted after verification ✓
+
+**Step 7: POST /api/requirement/price - Legacy Fallback — ✅ PASS (1 test)**
+
+Legacy total_area-only mode (no floors):
+- ✅ Amount: ₹6,210 (2484×2.5, treated as single ground floor) ✓
+
+**Step 8: Regression Endpoints — ✅ PASS (3 tests)**
+
+Existing endpoints still working:
+- ✅ GET /api/health → 200 OK ✓
+- ✅ GET /api/homepage/sections → 200 OK ✓
+- ✅ GET /api/projects → 200 OK ✓
+
+---
+
+#### Pytest Suite (13 tests) — ✅ ALL PASSED
+
+**File: backend/tests/test_bdesigner_public.py**
+
+- ✅ TestSettingsHero::test_settings_ok
+- ✅ TestSettingsHero::test_hero_states_shape
+- ✅ TestPortfolioProjects::test_projects_list
+- ✅ TestConstructionSteps::test_eight_steps_in_order
+- ✅ TestGuarantees::test_guarantees_in_order
+- ✅ TestComparison::test_comparison_rows_in_order
+- ✅ TestComparison::test_comparison_meta_bdesigner_yes_others_partial
+- ✅ **TestRequirementPrice::test_floor_area_recalculated_from_dimensions** (floor-wise pricing)
+- ✅ **TestRequirementPrice::test_architectural_floorwise_total** (floor-wise pricing)
+- ✅ **TestRequirementPrice::test_elevation_front_included_and_additional_view_20_percent_less** (floor-wise pricing)
+- ✅ **TestRequirementPrice::test_flat_rate_services** (floor-wise pricing)
+- ✅ **TestRequirementPrice::test_legacy_total_area_treated_as_ground_floor** (floor-wise pricing)
+- ✅ **TestRequirementPrice::test_empty_services_zero_total** (floor-wise pricing)
+
+---
+
+### CRITICAL FINDINGS
+
+✅ **SERVICE CATALOG MIGRATION WORKING**
+- migrate_service_catalog_floor_rates() successfully backfilled floor-wise rates
+- All services have ground_floor_rate and additional_floor_rate
+- Architectural: 2.5/2.0, Elevation 3D: 3.5/3.0, Structural: 5/5, Electrical: 2.5/2.5, Plumbing: 2.5/2.5, Interior: 12/12
+- Elevation 3D: additional_view_discount_percent=20, front_view_included=true
+- Estimation: pricing_type="free"
+- Migration is idempotent (does not overwrite admin-customized rates)
+
+✅ **FLOOR AREA CALCULATION WORKING (BACKEND AUTHORITY)**
+- floor_area_from_dims() correctly calculates: max(front, back) × max(right, left)
+- GF dims (front=30, right=42, back=32, left=40) → 1344 (max(30,32)×max(42,40) = 32×42)
+- FF dims (front=28, right=38, back=30, left=36) → 1140 (max(28,30)×max(38,36) = 30×38)
+- Total: 2484
+- **CRITICAL**: Backend NEVER trusts frontend-supplied calculated_area
+- Spoofed areas (99999) are ignored and recalculated from dimensions
+
+✅ **FLOOR-WISE PRICING WORKING**
+- _service_charge_floorwise() correctly applies different rates per floor
+- Ground Floor: uses ground_floor_rate
+- Floors above: use additional_floor_rate
+- Architectural: GF 1344×2.5=3360, FF 1140×2.0=2280, Total=5640
+- Structural: 2484×5=12420 (same rate for all floors)
+- Electrical: 2484×2.5=6210 (same rate for all floors)
+- Plumbing: 2484×2.5=6210 (same rate for all floors)
+- Interior: 2484×12=29808 (same rate for all floors)
+- Estimation: FREE (₹0)
+
+✅ **3D ELEVATION PRICING WORKING**
+- Front view INCLUDED by default (never charged as additional)
+- Front view total: 1344×3.5 + 1140×3.0 = 8124
+- Additional views: 20% discount (80% of front total)
+- Each additional view: 8124×80% = 6499.20
+- Front Design in elevation_views → NOT in additional_views (correctly excluded)
+- Left Design → additional_views[0], amount=6499.20
+- Multiple additional views: Left + Right + Back = 3×6499.20 = 19497.60
+- Total with all views: 8124 + 19497.60 = 27621.60
+
+✅ **BACKEND AUTHORITY WORKING (CRITICAL)**
+- POST /requirement/submit recalculates ALL floor areas from dimensions
+- Frontend-supplied calculated_area is NEVER trusted
+- Spoofed calculated_area=99999 → recalculated to 1344/1140
+- Spoofed total_area=99999 → recalculated to 2484
+- Response total: ₹26,762.40 (NOT based on 99999)
+- Stored lead has correct calculated areas (1344/1140, NOT 99999)
+
+✅ **IMMUTABLE PRICING SNAPSHOT WORKING**
+- pricing_snapshot stored in lead document
+- Contains: floors (with calculated_area), total_built_up_area, elevation_views, services
+- Each service has: ground_floor_rate_snapshot, additional_floor_rate_snapshot
+- Elevation 3D has: front_view_included, front_view_total, additional_view_discount_percent, additional_view_price, additional_views
+- grand_total: ₹26,762.40
+- Snapshot is immutable (later Admin Pricing changes do NOT affect stored leads)
+
+✅ **LEGACY FALLBACK WORKING**
+- POST /requirement/price with total_area only (no floors) still works
+- total_area=2484 → treated as single ground floor
+- Architectural: 2484×2.5 = 6210 (ground_floor_rate applied)
+- Backward compatible with old callers
+
+✅ **REGRESSION CHECKS PASSED**
+- GET /api/health → 200 OK
+- GET /api/homepage/sections → 200 OK
+- GET /api/projects → 200 OK
+- No breaking changes to existing APIs
+
+✅ **NO BACKEND ERRORS**
+- Backend logs clean (no errors or warnings)
+- All API endpoints responding correctly
+- No 5xx errors encountered
+
+---
+
+### Summary
+
+**✅ ALL 42 TESTS PASSED (100%)**
+
+**Endpoints Verified:**
+
+1. **GET /api/requirement/services** — ✅ Working
+   - Returns service catalog with floor-wise rates
+   - Each per_sqft service has ground_floor_rate and additional_floor_rate
+   - Elevation 3D has additional_view_discount_percent and front_view_included
+   - Estimation has pricing_type="free"
+
+2. **POST /api/requirement/price** — ✅ Working
+   - Accepts floors[] with 4-side dimensions (front, right, back, left)
+   - Recalculates floor areas: max(front, back) × max(right, left)
+   - Returns floor_areas[], area (total), lines[] with floor-wise pricing
+   - Each line has floor_breakdown with per-floor area/rate/amount
+   - Elevation 3D: front_view_included, front_view_total, additional_views[] (Front never charged)
+   - Legacy mode: accepts total_area only (treated as single ground floor)
+
+3. **POST /api/requirement/submit** — ✅ Working
+   - **CRITICAL**: Backend authority — recalculates ALL floor areas from dimensions
+   - NEVER trusts frontend-supplied calculated_area or total_area
+   - Stores structured floors with recalculated calculated_area
+   - Stores requirement.total_built_up_area (sum of floor areas)
+   - Creates immutable pricing_snapshot with floors, elevation_views, services (rate snapshots), grand_total
+   - Returns lead_id and total (based on recalculated areas)
+
+4. **GET /api/health** — ✅ Working (regression)
+   - Returns 200 OK
+
+5. **GET /api/homepage/sections** — ✅ Working (regression)
+   - Returns 200 OK
+
+6. **GET /api/projects** — ✅ Working (regression)
+   - Returns 200 OK
+
+**Key Acceptance Criteria Verified:**
+
+✅ **Step 1**: GET /api/requirement/services → all services have ground_floor_rate/additional_floor_rate; architectural 2.5/2.0, elevation_3d 3.5/3.0 + discount 20 + front included, structural 5/5, electrical 2.5/2.5, plumbing 2.5/2.5, interior 12/12, estimation free
+
+✅ **Step 2**: POST /api/requirement/price architectural → floor_areas [1344, 1140], area 2484, amount 5640, floor_breakdown GF 1344×2.5=3360 / FF 1140×2.0=2280
+
+✅ **Step 3**: POST /api/requirement/price elevation_3d → front_view_total 8124, front_view_included true, additional_views ONLY Left (Front never charged) 6499.20, amount 14623.20
+
+✅ **Step 4**: POST /api/requirement/price other services → structural 12420, electrical 6210, plumbing 6210, interior 29808, estimation 0
+
+✅ **Step 5**: POST /api/requirement/price elevation all views → amount 27621.60 (8124 + 3×6499.20)
+
+✅ **Step 6**: POST /api/requirement/submit with spoofed areas → total 26762.40 (NOT from 99999); stored lead has calculated_area 1344/1140, total_built_up_area 2484, pricing_snapshot with floors/elevation_views/services/grand_total
+
+✅ **Step 7**: POST /api/requirement/price legacy fallback → amount 6210 (2484×2.5, single ground floor)
+
+✅ **Step 8**: Regression → health 200, homepage/sections 200, projects 200
+
+**No Critical Issues Found**
+
+**No 5xx Errors Encountered**
+
+**Backend Logs:** Clean (no errors or warnings)
+
+---
+
+### Agent Communication
+
+**From: Testing Agent (E2 - Backend)**
+**To: Main Agent (E1)**
+**Date: 2026-09-27**
+
+The FLOOR-WISE DIMENSIONS + AUTO BUILT-UP AREA + LIVE PRICING DEEP FIX backend module has been tested and verified. All functionality works as expected:
+
+**✅ Core Functionality:**
+- Service catalog migration (migrate_service_catalog_floor_rates) successfully backfilled floor-wise rates
+- Floor area calculation (floor_area_from_dims) correctly computes max(front,back) × max(right,left)
+- Floor-wise pricing (_service_charge_floorwise) applies ground_floor_rate to GF, additional_floor_rate to floors above
+- 3D Elevation: Front view included by default, additional views 20% discount (80% of front total)
+- Backend authority: recalculates ALL floor areas from dimensions, NEVER trusts frontend-supplied values
+- Immutable pricing snapshot: stores floors, areas, rates, views, services, grand_total
+- Legacy fallback: total_area-only mode still works (treated as single ground floor)
+
+**✅ Data Integrity:**
+- GF dims (30,42,32,40) → 1344 (max(30,32)×max(42,40) = 32×42)
+- FF dims (28,38,30,36) → 1140 (max(28,30)×max(38,36) = 30×38)
+- Total: 2484
+- Architectural: GF 1344×2.5=3360, FF 1140×2.0=2280, Total=5640
+- Elevation 3D: Front 8124 (included), Left 6499.20 (80%), Total=14623.20
+- Spoofed areas (99999) ignored and recalculated to 1344/1140/2484
+- Stored lead has correct calculated_area (1344/1140, NOT 99999)
+
+**✅ Business Rules:**
+- Service catalog: ground_floor_rate for GF, additional_floor_rate for floors above
+- Architectural: 2.5/2.0, Elevation 3D: 3.5/3.0, Structural: 5/5, Electrical: 2.5/2.5, Plumbing: 2.5/2.5, Interior: 12/12
+- Elevation 3D: Front view included (never charged), additional views 20% discount
+- Backend authority: recalculates from dimensions, never trusts frontend
+- Immutable snapshot: pricing_snapshot frozen at submission time
+- Legacy fallback: total_area only → single ground floor
+
+**✅ CRITICAL TESTS PASSED:**
+- Service catalog: all services have floor-wise rates
+- Floor area calculation: 1344/1140 from dimensions
+- Floor-wise pricing: GF 3360, FF 2280, Total 5640
+- Elevation 3D: Front 8124 included, Left 6499.20 (80%)
+- Backend authority: spoofed 99999 → recalculated 1344/1140/2484
+- Stored data: calculated_area 1344/1140, total_built_up_area 2484, pricing_snapshot present
+- Legacy fallback: 2484×2.5 = 6210
+- Regression: health, homepage/sections, projects all 200
+
+**Evidence:**
+- All 42 test cases passed (100% success rate)
+- Custom test suite: 29 tests (8 steps)
+- Pytest suite: 13 tests (test_bdesigner_public.py)
+- Test artifacts: `/app/backend_test_floor_pricing.py`
+- No errors or warnings in backend logs
+- All 8 test plan steps verified
+- Backend authority verified via MongoDB inspection
+
+The FLOOR-WISE DIMENSIONS + AUTO BUILT-UP AREA + LIVE PRICING DEEP FIX backend module is production-ready. No issues found.
+
+
+
+
 ## 💰 STAGE 5 — FINAL COMMERCIAL + PAYMENT INTEGRATION + CLIENT PANEL (BACKEND · 2026-08-27 · Main Agent)
 
 SCOPE: Build on the already-integrated V1/V2 → Agreement → Payments work. NEW additions (additive, no rebuild): payment-schedule VERSIONING + change AUDIT inside apply-variation (payment.py), overpayment/credit + next_payment + schedule_version in payment commercial-status (payment.py), and a consolidated CLIENT-SAFE commercial endpoint GET /projects/{id}/client-commercial (stage4_variation.py) powering Client Panel + PM view. Signed agreement & historical payments never mutated.

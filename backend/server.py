@@ -477,17 +477,58 @@ async def track_click(payload: TrackIn, request: Request):
     return {"ok": True}
 
 
-# Approved architectural service catalog with authoritative pricing.
-# pricing_type: per_sqft | fixed | free. per_sqft = max(area*rate, minimum_charge).
+# Approved architectural service catalog with authoritative pricing (Admin → Pricing).
+# FLOOR-WISE PRICING (authoritative):
+#   ground_floor_rate      → ₹/sq.ft. applied to the Ground Floor's auto-calculated area
+#   additional_floor_rate  → ₹/sq.ft. applied to every floor ABOVE ground
+#   pricing_type: per_sqft | fixed | free
+#   per_sqft = max(GF_area × gf_rate + Σ(additional_area × add_rate), minimum_charge)
+# `rate` mirrors ground_floor_rate and is kept for display/back-compat only.
+FLOOR_NAMES = ["Ground Floor", "First Floor", "Second Floor", "Third Floor", "Fourth Floor",
+               "Fifth Floor", "Sixth Floor", "Seventh Floor", "Eighth Floor", "Ninth Floor", "Tenth Floor"]
+
+
+def floor_name(i: int) -> str:
+    return FLOOR_NAMES[i] if 0 <= i < len(FLOOR_NAMES) else f"Floor {i}"
+
+
+def floor_area_from_dims(f: dict) -> float:
+    """Backend authority: a floor's built-up area is ALWAYS recomputed from its
+    four side dimensions — max(front, back) × max(right, left). A frontend-
+    supplied calculated area is never trusted."""
+    if not isinstance(f, dict):
+        return 0.0
+    try:
+        front = float(f.get("front") or 0)
+        back = float(f.get("back") or 0)
+        right = float(f.get("right") or 0)
+        left = float(f.get("left") or 0)
+    except (TypeError, ValueError):
+        return 0.0
+    if min(front, back, right, left) <= 0:
+        return 0.0
+    return round(max(front, back) * max(right, left), 2)
+
+
+def _is_front_view(view) -> bool:
+    return "front" in str(view or "").strip().lower()
+
+
 DEFAULT_SERVICE_CATALOG = [
-    {"code": "estimation",   "name": "Estimation Sheet",    "pricing_type": "free",     "rate": 0,  "minimum_charge": 0,    "image": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=600&q=70", "triggers_elevation": False, "sort_order": 0},
-    {"code": "architectural","name": "Architectural Plan",  "pricing_type": "per_sqft", "rate": 12, "minimum_charge": 5000, "image": "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=600&q=70", "triggers_elevation": False, "sort_order": 1},
-    {"code": "elevation_3d", "name": "3D Elevation Design",  "pricing_type": "per_sqft", "rate": 8,  "minimum_charge": 4000, "image": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=70", "triggers_elevation": True,  "sort_order": 2},
-    {"code": "interior",     "name": "Interior Design",      "pricing_type": "per_sqft", "rate": 40, "minimum_charge": 15000,"image": "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=600&q=70", "triggers_elevation": False, "sort_order": 3},
-    {"code": "structural",   "name": "Structural Design",    "pricing_type": "per_sqft", "rate": 10, "minimum_charge": 5000, "image": "https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=600&q=70", "triggers_elevation": False, "sort_order": 4},
-    {"code": "electrical",   "name": "Electrical Design",    "pricing_type": "per_sqft", "rate": 6,  "minimum_charge": 3000, "image": "https://images.unsplash.com/photo-1565608087341-404b25492fee?auto=format&fit=crop&w=600&q=70", "triggers_elevation": False, "sort_order": 5},
-    {"code": "plumbing",     "name": "Plumbing Design",      "pricing_type": "per_sqft", "rate": 6,  "minimum_charge": 3000, "image": "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=600&q=70", "triggers_elevation": False, "sort_order": 6},
+    {"code": "estimation",   "name": "Estimation Sheet",    "pricing_type": "free",     "rate": 0,   "ground_floor_rate": 0,   "additional_floor_rate": 0,   "minimum_charge": 0,    "image": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=600&q=70", "triggers_elevation": False, "sort_order": 0},
+    {"code": "architectural","name": "Architectural Plan",  "pricing_type": "per_sqft", "rate": 2.5, "ground_floor_rate": 2.5, "additional_floor_rate": 2.0, "minimum_charge": 5000, "image": "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=600&q=70", "triggers_elevation": False, "sort_order": 1},
+    {"code": "elevation_3d", "name": "3D Elevation Design", "pricing_type": "per_sqft", "rate": 3.5, "ground_floor_rate": 3.5, "additional_floor_rate": 3.0, "minimum_charge": 4000, "additional_view_discount_percent": 20, "front_view_included": True, "image": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=70", "triggers_elevation": True,  "sort_order": 2},
+    {"code": "interior",     "name": "Interior Design",     "pricing_type": "per_sqft", "rate": 12,  "ground_floor_rate": 12,  "additional_floor_rate": 12,  "minimum_charge": 15000,"image": "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=600&q=70", "triggers_elevation": False, "sort_order": 3},
+    {"code": "structural",   "name": "Structural Design",   "pricing_type": "per_sqft", "rate": 5,   "ground_floor_rate": 5,   "additional_floor_rate": 5,   "minimum_charge": 5000, "image": "https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=600&q=70", "triggers_elevation": False, "sort_order": 4},
+    {"code": "electrical",   "name": "Electrical Design",   "pricing_type": "per_sqft", "rate": 2.5, "ground_floor_rate": 2.5, "additional_floor_rate": 2.5, "minimum_charge": 3000, "image": "https://images.unsplash.com/photo-1565608087341-404b25492fee?auto=format&fit=crop&w=600&q=70", "triggers_elevation": False, "sort_order": 5},
+    {"code": "plumbing",     "name": "Plumbing Design",     "pricing_type": "per_sqft", "rate": 2.5, "ground_floor_rate": 2.5, "additional_floor_rate": 2.5, "minimum_charge": 3000, "image": "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=600&q=70", "triggers_elevation": False, "sort_order": 6},
 ]
+
+# Rates that shipped before floor-wise pricing — used only to detect untouched
+# seed data during migration so admin-customised rates are never clobbered.
+_LEGACY_DEFAULT_RATES = {"architectural": 12, "elevation_3d": 8, "interior": 40,
+                         "structural": 10, "electrical": 6, "plumbing": 6}
+_CATALOG_DEFAULTS = {s["code"]: s for s in DEFAULT_SERVICE_CATALOG}
 
 
 async def seed_service_catalog() -> None:
@@ -498,19 +539,77 @@ async def seed_service_catalog() -> None:
     await db.service_catalog.insert_many(docs)
 
 
-def _service_charge(svc: dict, area: float) -> float:
+async def migrate_service_catalog_floor_rates() -> None:
+    """Idempotent: backfill floor-wise rates onto an existing catalog so Admin
+    Pricing remains the single source of truth (no rates in React components)."""
+    for code, default in _CATALOG_DEFAULTS.items():
+        doc = await db.service_catalog.find_one({"code": code})
+        if not doc:
+            continue
+        patch = {}
+        if doc.get("ground_floor_rate") is None:
+            patch["ground_floor_rate"] = default["ground_floor_rate"]
+        if doc.get("additional_floor_rate") is None:
+            patch["additional_floor_rate"] = default["additional_floor_rate"]
+        if code == "elevation_3d":
+            if doc.get("additional_view_discount_percent") is None:
+                patch["additional_view_discount_percent"] = default["additional_view_discount_percent"]
+            if doc.get("front_view_included") is None:
+                patch["front_view_included"] = default["front_view_included"]
+        # Sync the display `rate` only when it still holds a legacy seed default.
+        if "ground_floor_rate" in patch and doc.get("pricing_type") == "per_sqft" \
+                and doc.get("rate") == _LEGACY_DEFAULT_RATES.get(code):
+            patch["rate"] = default["ground_floor_rate"]
+        if patch:
+            await db.service_catalog.update_one({"code": code}, {"$set": patch})
+
+
+def _service_charge_floorwise(svc: dict, floor_areas: list, elevation_views=None):
+    """Floor-wise charge. Ground floor uses ground_floor_rate; every floor above
+    uses additional_floor_rate. 3D Elevation: the Front view is included in the
+    base total; each additional selected view costs (100 − discount)% of that
+    base total. Returns (amount, extras_for_line_and_snapshot)."""
     ptype = svc.get("pricing_type")
-    rate = float(svc.get("rate") or 0)
     if ptype == "free":
-        return 0.0
+        return 0.0, {"floor_breakdown": []}
     if ptype == "fixed":
-        return rate
-    return max(area * rate, float(svc.get("minimum_charge") or 0))
+        return round(float(svc.get("rate") or 0), 2), {"floor_breakdown": []}
+    gf_rate = float(svc.get("ground_floor_rate", svc.get("rate") or 0) or 0)
+    add_rate = float(svc.get("additional_floor_rate", gf_rate) or 0)
+    breakdown, base = [], 0.0
+    for i, area in enumerate(floor_areas):
+        rate = gf_rate if i == 0 else add_rate
+        amt = round(area * rate, 2)
+        base += amt
+        breakdown.append({"floor_index": i, "floor_name": floor_name(i),
+                          "area": area, "rate": rate, "amount": amt})
+    base = round(base, 2)
+    minimum = float(svc.get("minimum_charge") or 0)
+    amount = max(base, minimum)
+    extras = {"floor_breakdown": breakdown, "ground_floor_rate": gf_rate,
+              "additional_floor_rate": add_rate,
+              "minimum_charge_applied": bool(minimum > 0 and amount > base)}
+    if svc.get("code") == "elevation_3d":
+        front_total = round(amount, 2)  # Front view included by default
+        discount = float(svc.get("additional_view_discount_percent", 20) or 0)
+        view_price = round(front_total * (1 - discount / 100.0), 2)
+        addl = [v for v in (elevation_views or []) if not _is_front_view(v)]
+        extras.update({
+            "front_view_included": True,
+            "front_view_total": front_total,
+            "additional_view_discount_percent": discount,
+            "additional_view_price": view_price,
+            "additional_views": [{"view": v, "discount_percent": discount, "amount": view_price} for v in addl],
+        })
+        amount = round(amount + view_price * len(addl), 2)
+    return round(amount, 2), extras
 
 
 class RequirementPriceIn(BaseModel):
     service_codes: list = []
     total_area: float = 0
+    floors: list = []
+    elevation_views: list = []
 
 
 class RequirementSubmitIn(BaseModel):
@@ -530,17 +629,46 @@ async def requirement_services():
     return {"services": rows}
 
 
+def _normalise_floors(raw_floors, fallback_area: float = 0.0):
+    """Recalculate every floor's built-up area from its four side dimensions.
+    Returns (structured_floors, floor_areas). Falls back to a single ground-floor
+    area for legacy callers that only send total_area."""
+    structured, areas = [], []
+    for i, f in enumerate(raw_floors or []):
+        if not isinstance(f, dict):
+            continue
+        area = floor_area_from_dims(f)
+        areas.append(area)
+        structured.append({
+            "floor_index": i,
+            "floor_name": f.get("floor_name") or f.get("name") or floor_name(i),
+            "front": f.get("front"), "right": f.get("right"),
+            "back": f.get("back"), "left": f.get("left"),
+            "calculated_area": area,
+            "purpose": f.get("purpose"), "bedrooms": f.get("bedrooms"),
+            "masterBedrooms": f.get("masterBedrooms"),
+            "indoor": f.get("indoor") or [], "outdoor": f.get("outdoor") or [],
+            "notes": f.get("notes") or "",
+        })
+    if not areas and fallback_area and float(fallback_area) > 0:
+        areas = [round(float(fallback_area), 2)]
+    return structured, areas
+
+
 @api.post("/requirement/price")
 async def requirement_price(payload: RequirementPriceIn):
-    area = max(0.0, float(payload.total_area or 0))
+    _, floor_areas = _normalise_floors(payload.floors, payload.total_area)
+    area = round(sum(floor_areas), 2)
     rows = await db.service_catalog.find({"code": {"$in": payload.service_codes}}, {"_id": 0}).to_list(50)
+    rows.sort(key=lambda s: s.get("sort_order", 99))
     lines, total = [], 0.0
     for svc in rows:
-        amt = _service_charge(svc, area)
+        amt, extras = _service_charge_floorwise(svc, floor_areas, payload.elevation_views)
         total += amt
         lines.append({"code": svc["code"], "name": svc["name"], "pricing_type": svc["pricing_type"],
-                      "rate": svc.get("rate", 0), "applicable_area": area, "amount": round(amt, 2)})
-    return {"lines": lines, "total": round(total, 2), "area": area}
+                      "rate": svc.get("ground_floor_rate", svc.get("rate", 0)),
+                      "applicable_area": area, "amount": round(amt, 2), **extras})
+    return {"lines": lines, "total": round(total, 2), "area": area, "floor_areas": floor_areas}
 
 
 @api.get("/requirement/serviceability")
@@ -555,18 +683,46 @@ async def requirement_serviceability(area: str = ""):
 
 @api.post("/requirement/submit")
 async def requirement_submit(payload: RequirementSubmitIn, request: Request):
-    area = max(0.0, float(payload.total_area or 0))
+    req = dict(payload.requirement or {})
+    # Backend authority: every floor area is recalculated from its four side
+    # dimensions — a frontend-supplied calculated area is never trusted.
+    floors_struct, floor_areas = _normalise_floors(req.get("floors"), payload.total_area)
+    if floors_struct:
+        req["floors"] = floors_struct
+    total_built_up = round(sum(floor_areas), 2)
+    req["total_built_up_area"] = total_built_up
+    elevation = req.get("elevation") or {}
+    elev_views = elevation.get("views") or []
     rows = await db.service_catalog.find({"code": {"$in": payload.service_codes}}, {"_id": 0}).to_list(50)
+    rows.sort(key=lambda s: s.get("sort_order", 99))
     services_snapshot, total = [], 0.0
     for svc in rows:
-        amt = _service_charge(svc, area)
+        amt, extras = _service_charge_floorwise(svc, floor_areas, elev_views)
         total += amt
         services_snapshot.append({"service_id": svc["id"], "code": svc["code"], "name": svc["name"],
                                   "pricing_type": svc["pricing_type"], "rate_snapshot": svc.get("rate", 0),
-                                  "applicable_area": area, "calculated_amount": round(amt, 2),
-                                  "included_revisions": svc.get("included_revisions", 0)})
+                                  "ground_floor_rate_snapshot": extras.get("ground_floor_rate", svc.get("rate", 0)),
+                                  "additional_floor_rate_snapshot": extras.get("additional_floor_rate"),
+                                  "applicable_area": total_built_up, "calculated_amount": round(amt, 2),
+                                  "floor_breakdown": extras.get("floor_breakdown", []),
+                                  "included_revisions": svc.get("included_revisions", 0),
+                                  **({k: extras[k] for k in ("front_view_included", "front_view_total",
+                                                             "additional_view_discount_percent",
+                                                             "additional_view_price", "additional_views") if k in extras})})
     user = await current_user_optional(request)
     lead_id = str(uuid.uuid4())
+    # Immutable pricing snapshot: floors, areas, rates, view discount, selected
+    # views, service totals and grand total — later Admin Pricing changes must
+    # never alter this confirmed estimate.
+    pricing_snapshot = {
+        "floors": [{"floor_index": i, "floor_name": floor_name(i), "calculated_area": a}
+                   for i, a in enumerate(floor_areas)],
+        "total_built_up_area": total_built_up,
+        "elevation_views": elev_views,
+        "services": services_snapshot,
+        "grand_total": round(total, 2),
+        "captured_at": now_iso(),
+    }
     doc = {
         "id": lead_id,
         "name": (payload.name or "").strip(),
@@ -578,7 +734,8 @@ async def requirement_submit(payload: RequirementSubmitIn, request: Request):
         "registration_status": "registered" if user else "draft",
         "total_architectural_charge": round(total, 2),
         "selected_services": services_snapshot,
-        "requirement": payload.requirement or {},
+        "pricing_snapshot": pricing_snapshot,
+        "requirement": req,
         "status": "new",
         "created_at": now_iso(),
         "updated_at": now_iso(),
@@ -674,6 +831,10 @@ async def startup_seed_homepage():
         pass
     try:
         await seed_service_catalog()
+    except Exception:
+        pass
+    try:
+        await migrate_service_catalog_floor_rates()
     except Exception:
         pass
     try:

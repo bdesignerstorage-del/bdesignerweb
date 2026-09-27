@@ -10,6 +10,8 @@ export const ELEV_IMAGES = {
 };
 
 export const rupee = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
+/* Rate display: ₹2.50 style (keeps paise, drops .00). */
+export const fmtRate = (n) => `₹${Number(n || 0).toFixed(2).replace(/\.00$/, "")}`;
 
 /* Panel card — token surface that never merges with the canvas. */
 export function ReqCard({ title, right, subtitle, children, className = "" }) {

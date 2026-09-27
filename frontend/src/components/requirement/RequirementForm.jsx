@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import {
   X, ArrowLeft, ClipboardList, Upload, MapPin, Loader2, Mail,
-  ChevronDown, ChevronUp, Sparkles, CheckCircle2,
+  ChevronDown, ChevronUp, Sparkles, CheckCircle2, Check,
 } from "lucide-react";
 import api from "@/lib/api";
 import { toast } from "sonner";
@@ -12,7 +12,7 @@ import PasswordInput from "@/components/PasswordInput";
 import GoogleAuthButton from "@/components/GoogleAuthButton";
 import {
   ReqCard, ReqField, ReqSegmented, ReqCounter, ReqChips, ReqImageCard, ReqRow,
-  ELEV_IMAGES, rupee, GoogleIcon,
+  ELEV_IMAGES, rupee, fmtRate, GoogleIcon,
 } from "./primitives";
 
 const LS_KEY = "bd_requirement_draft_v1";
@@ -21,9 +21,18 @@ const PURPOSES = ["House Owner", "House Rent", "Parking", "Shop", "Storage"];
 const INDOOR = ["Living Room","Temple","Kitchen","Double Height Lobby","Dining","Common Washroom","Office Area","Study Room","Kids Room","Store Room","Inside Lift","Inside Stair","Family Lounge","Drawing Room","Theatre","Gym","Walk-in Wardrobe","Bar Area","Balcony","Foyer","Wash Area","Family Room","Conference Room","Powder Room"];
 const OUTDOOR = ["Garden","Outside Stair","Swimming Pool","Security Room","Compound Gate","Veranda / Sitout","Basement Room","Servant Room","Pet House","Bonfire"];
 const ELEV_STYLES = ["Simple Design", "Modern Design", "Kerala Design", "Classical Design"];
-const ELEV_VIEWS = ["Front Design", "Left Design", "Right Design", "Back Design"];
+/* Front view is always INCLUDED in 3D Elevation — only additional views are selectable. */
+const ELEV_ADDL_VIEWS = ["Left Design", "Right Design", "Back Design"];
 
-const emptyFloor = () => ({ area: "", purpose: "House Owner", bedrooms: 0, masterBedrooms: 0, indoor: [], outdoor: [], notes: "" });
+// A floor's built-up area is DERIVED, never typed: max(front, back) × max(right, left).
+const calcFloorArea = (f) => {
+  const fr = parseFloat(f?.front), ri = parseFloat(f?.right), ba = parseFloat(f?.back), le = parseFloat(f?.left);
+  if (![fr, ri, ba, le].every((v) => v > 0)) return 0;
+  return Math.max(fr, ba) * Math.max(ri, le);
+};
+const hasAnyDim = (f) => ["front", "right", "back", "left"].some((k) => String(f?.[k] ?? "").trim() !== "");
+
+const emptyFloor = () => ({ front: "", right: "", back: "", left: "", purpose: "House Owner", bedrooms: 0, masterBedrooms: 0, indoor: [], outdoor: [], notes: "" });
 
 function loadDraft() {
   try { const d = JSON.parse(localStorage.getItem(LS_KEY)); if (d) return d; } catch {}
@@ -37,7 +46,6 @@ export default function RequirementForm({ onClose }) {
   const [step, setStep] = useState(saved?.step || 1);
   const [services, setServices] = useState([]);
   const [selected, setSelected] = useState(saved?.selected || []);
-  const [dims, setDims] = useState(saved?.dims || { front: "", back: "", left: "", right: "" });
   const [storeys, setStoreys] = useState(saved?.storeys ?? 0);
   const [floors, setFloors] = useState(saved?.floors || [emptyFloor()]);
   const [projectName, setProjectName] = useState(saved?.projectName || "");
@@ -48,7 +56,11 @@ export default function RequirementForm({ onClose }) {
   const [serviceable, setServiceable] = useState(saved?.serviceable ?? null);
   const [construction, setConstruction] = useState(saved?.construction || { need: "", vastu: "", facing: "", family: 0, bike: 0, car: 0 });
   const [activeFloor, setActiveFloor] = useState(0);
-  const [elevation, setElevation] = useState(saved?.elevation || { style: "", views: [] });
+  const [elevation, setElevation] = useState(() => {
+    const e = saved?.elevation || { style: "", views: [] };
+    // Front view is included by default — only additional views are stored.
+    return { ...e, views: (e.views || []).filter((v) => !/front/i.test(v)) };
+  });
   const [priceLines, setPriceLines] = useState([]);
   const [total, setTotal] = useState(0);
   const [reg, setReg] = useState({ name: user?.name || "", mobile: "", email: user?.email || "", password: "", confirmPassword: "" });
@@ -67,40 +79,15 @@ export default function RequirementForm({ onClose }) {
     api.get("/requirement/serviceability").then((r) => setServiceAreas(r.data.areas || [])).catch(() => {});
   }, []);
 
+  // Total Built-up Area = SUM of each floor's auto-calculated area.
   const totalArea = useMemo(() => {
-    const floorCount = storeys + 1;
-    return floors.slice(0, floorCount).reduce((s, f) => s + (parseFloat(f.area) || 0), 0);
+    return floors.slice(0, storeys + 1).reduce((s, f) => s + calcFloorArea(f), 0);
   }, [floors, storeys]);
 
-  // Calculated plot footprint from the 4 plot sides (near-rectangular avg).
-  const baseArea = useMemo(() => {
-    const f = parseFloat(dims.front), b = parseFloat(dims.back), l = parseFloat(dims.left), r = parseFloat(dims.right);
-    if ([f, b, l, r].some((v) => !(v > 0))) return 0;
-    return Math.round(((f + b) / 2) * ((l + r) / 2));
-  }, [dims]);
-
-  // Auto-populate Ground Floor with the calculated footprint (stays editable;
-  // never overwrites a value the user has manually changed).
-  const autoGfRef = useRef(null);
-  useEffect(() => {
-    if (baseArea > 0) {
-      setFloors((prev) => {
-        const cur = prev[0]?.area;
-        if (cur === "" || cur == null || String(cur) === String(autoGfRef.current)) {
-          autoGfRef.current = baseArea;
-          const next = [...prev];
-          next[0] = { ...next[0], area: String(baseArea) };
-          return next;
-        }
-        return prev;
-      });
-    }
-  }, [baseArea]);
-
-  // Step-2 completeness: every created floor must have a valid area.
+  // Step-2 completeness: every active floor must have all four dimensions > 0.
   const incompleteFloors = useMemo(() => {
     return floors.slice(0, storeys + 1)
-      .map((f, i) => (parseFloat(f.area) > 0 ? -1 : i))
+      .map((f, i) => (calcFloorArea(f) > 0 ? -1 : i))
       .filter((i) => i >= 0);
   }, [floors, storeys]);
   const step2Complete = totalArea > 0 && incompleteFloors.length === 0;
@@ -113,18 +100,26 @@ export default function RequirementForm({ onClose }) {
   useEffect(() => {
     if (!selected.length) { setPriceLines([]); setTotal(0); return; }
     const t = setTimeout(() => {
-      api.post("/requirement/price", { service_codes: selected, total_area: totalArea })
+      // Backend is authoritative: send raw floor dimensions + selected elevation
+      // views; FastAPI recomputes every floor area and the floor-wise pricing.
+      const payloadFloors = floors.slice(0, storeys + 1)
+        .map((f) => ({ front: f.front, right: f.right, back: f.back, left: f.left }));
+      api.post("/requirement/price", {
+        service_codes: selected,
+        floors: payloadFloors,
+        elevation_views: wantsElevation ? elevation.views : [],
+      })
         .then((r) => { setPriceLines(r.data.lines || []); setTotal(r.data.total || 0); })
         .catch(() => {});
     }, 200);
     return () => clearTimeout(t);
-  }, [selected, totalArea]);
+  }, [selected, floors, storeys, elevation.views, wantsElevation]);
 
   useEffect(() => {
     try {
-      localStorage.setItem(LS_KEY, JSON.stringify({ step, selected, dims, storeys, floors, projectName, files, address, serviceable, construction, elevation }));
+      localStorage.setItem(LS_KEY, JSON.stringify({ step, selected, storeys, floors, projectName, files, address, serviceable, construction, elevation }));
     } catch {}
-  }, [step, selected, dims, storeys, floors, projectName, files, address, serviceable, construction, elevation]);
+  }, [step, selected, storeys, floors, projectName, files, address, serviceable, construction, elevation]);
 
   useEffect(() => {
     setFloors((prev) => {
@@ -160,7 +155,7 @@ export default function RequirementForm({ onClose }) {
     setErr("");
     const idx = STEPS.indexOf(step);
     if (step === 1 && selected.length === 0) return setErr("Select at least one service.");
-    if (step === 2 && !step2Complete) return setErr("Enter built-up area for every floor.");
+    if (step === 2 && !step2Complete) return setErr("Enter all four dimensions for every floor.");
     if (step === 3 && !address) return setErr("Select your project location.");
     if (step === 4 && !construction.need) return setErr("Please tell us about your construction interest.");
     if (step === 6 && !elevation.style) return setErr("Select an elevation style.");
@@ -177,8 +172,16 @@ export default function RequirementForm({ onClose }) {
   const toggleFloorItem = (i, key, val) => setFloors((p) => p.map((f, k) => (k === i ? { ...f, [key]: f[key].includes(val) ? f[key].filter((x) => x !== val) : [...f[key], val] } : f)));
 
   const buildRequirement = () => ({
-    dimensions: dims, storeys: `G+${storeys}`, total_built_up_area: totalArea,
-    floors: floors.slice(0, storeys + 1).map((f, i) => ({ name: floorName(i), ...f })),
+    // Ground-floor sides kept under `dimensions` for backward compatibility.
+    dimensions: { front: floors[0]?.front || "", right: floors[0]?.right || "", back: floors[0]?.back || "", left: floors[0]?.left || "" },
+    storeys: `G+${storeys}`, total_built_up_area: totalArea,
+    floors: floors.slice(0, storeys + 1).map((f, i) => ({
+      floor_index: i, floor_name: floorName(i),
+      front: f.front, right: f.right, back: f.back, left: f.left,
+      calculated_area: calcFloorArea(f),
+      purpose: f.purpose, bedrooms: f.bedrooms, masterBedrooms: f.masterBedrooms,
+      indoor: f.indoor, outdoor: f.outdoor, notes: f.notes,
+    })),
     project_name: projectName, files: files.map((f) => f.name),
     address, serviceable, construction, elevation: wantsElevation ? elevation : null,
   });
@@ -190,7 +193,7 @@ export default function RequirementForm({ onClose }) {
       project_name: projectName, service_codes: selected, total_area: totalArea,
       requirement: buildRequirement(), source,
     });
-  }, [reg, projectName, selected, totalArea, floors, storeys, dims, address, construction, elevation, wantsElevation, serviceable]);
+  }, [reg, projectName, selected, totalArea, floors, storeys, address, construction, elevation, wantsElevation, serviceable]);
 
   // Authenticated client saving the project directly from Summary (Flow E /
   // logged-in user). No registration, uses their own account.
@@ -323,9 +326,12 @@ export default function RequirementForm({ onClose }) {
         <p className="bd-eyebrow">Your Project</p>
         <h3 className="text-xl font-bold text-[var(--text-primary)] mt-1 leading-tight">{projectName || "My Dream Home"}</h3>
       </div>
-      <div className="bd-card-surface rounded-2xl px-4 py-1 bd-req-divide">
+      <div className="bd-card-surface rounded-2xl px-4 py-1 bd-req-divide" data-testid="req-summary-areas">
         <ReqRow k="Services" v={selected.length ? `${selected.length} selected` : "—"} />
-        <ReqRow k="Built-up Area" v={totalArea > 0 ? `${totalArea.toLocaleString("en-IN")} sq.ft.` : "—"} />
+        {floors.slice(0, storeys + 1).map((f, i) => (
+          <ReqRow key={i} k={floorName(i)} v={calcFloorArea(f) > 0 ? `${calcFloorArea(f).toLocaleString("en-IN")} sq.ft.` : "—"} />
+        ))}
+        <ReqRow k="Total Built-up Area" v={totalArea > 0 ? `${totalArea.toLocaleString("en-IN")} sq.ft.` : "—"} accent />
         <ReqRow k="Floors" v={`G + ${storeys}`} />
         <ReqRow k="Location" v={address?.label || "—"} />
         {construction.need && <ReqRow k="Construction" v={construction.need} />}
@@ -338,16 +344,44 @@ export default function RequirementForm({ onClose }) {
         </div>
       )}
       {!compact && priceLines.length > 0 && (
-        <div className="bd-card-surface rounded-2xl px-4 py-3 bd-req-divide">
+        <div className="bd-card-surface rounded-2xl px-4 py-3 bd-req-divide" data-testid="req-summary-pricing">
           {priceLines.map((l) => (
-            <div key={l.code} className="flex items-center justify-between py-2">
-              <div>
+            <div key={l.code} className="py-2" data-testid={`req-price-line-${l.code}`}>
+              <div className="flex items-center justify-between">
                 <div className="text-sm font-medium text-[var(--text-primary)]">{l.name}</div>
-                <div className="text-[11px] text-[var(--text-secondary)]">
-                  {l.pricing_type === "free" ? "Included FREE" : l.pricing_type === "per_sqft" ? `${rupee(l.rate)}/sq.ft. × ${l.applicable_area.toLocaleString("en-IN")} sq.ft.` : "Fixed"}
-                </div>
+                <div className="text-sm font-semibold text-[var(--text-primary)]">{rupee(l.amount)}</div>
               </div>
-              <div className="text-sm font-semibold text-[var(--text-primary)]">{rupee(l.amount)}</div>
+              <div className="text-[11px] text-[var(--text-secondary)] mt-1 space-y-0.5">
+                {l.pricing_type === "free" ? (
+                  <div>Included FREE</div>
+                ) : l.pricing_type === "per_sqft" ? (
+                  <>
+                    {(l.floor_breakdown || []).map((fb) => (
+                      <div key={fb.floor_index} className="flex items-center justify-between gap-2">
+                        <span>{fb.floor_name} · {Number(fb.area).toLocaleString("en-IN")} sq.ft. × {fmtRate(fb.rate)}</span>
+                        <span className="font-medium">{rupee(fb.amount)}</span>
+                      </div>
+                    ))}
+                    {l.code === "elevation_3d" && (
+                      <>
+                        <div className="flex items-center justify-between gap-2">
+                          <span>Front View — Included</span>
+                          <span className="font-medium">{rupee(l.front_view_total)}</span>
+                        </div>
+                        {(l.additional_views || []).map((v) => (
+                          <div key={v.view} className="flex items-center justify-between gap-2">
+                            <span>{v.view} · {v.discount_percent}% reduced view</span>
+                            <span className="font-medium">{rupee(v.amount)}</span>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                    {l.minimum_charge_applied && <div>Minimum charge applied</div>}
+                  </>
+                ) : (
+                  <div>Fixed</div>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -414,7 +448,11 @@ export default function RequirementForm({ onClose }) {
                     testid={`req-service-${s.code}`}
                     image={s.image}
                     label={s.name}
-                    sublabel={s.pricing_type === "per_sqft" ? `${rupee(s.rate)}/sq.ft.` : s.pricing_type === "free" ? "Complimentary" : "Fixed price"}
+                    sublabel={s.pricing_type === "per_sqft"
+                      ? (s.ground_floor_rate != null && s.additional_floor_rate != null && s.ground_floor_rate !== s.additional_floor_rate
+                        ? `${fmtRate(s.ground_floor_rate)}/sq.ft. GF · ${fmtRate(s.additional_floor_rate)}/sq.ft. addl.`
+                        : `${fmtRate(s.ground_floor_rate ?? s.rate)}/sq.ft.`)
+                      : s.pricing_type === "free" ? "Complimentary" : "Fixed price"}
                     badge={s.pricing_type === "free" ? "FREE" : null}
                     selected={selected.includes(s.code)}
                     onClick={() => toggleService(s.code)}
@@ -425,35 +463,41 @@ export default function RequirementForm({ onClose }) {
 
             {step === 2 && (
               <>
-                <ReqCard title="Built-up Area (ft)" subtitle="Plot dimensions on each side">
-                  <div className="grid grid-cols-2 gap-3">
-                    {["front", "back", "left", "right"].map((k) => (
-                      <ReqField key={k} placeholder={`${k[0].toUpperCase() + k.slice(1)} side`} value={dims[k]} type="number" inputMode="numeric" testid={`req-dim-${k}`}
-                        onChange={(v) => setDims({ ...dims, [k]: v })} />
-                    ))}
-                  </div>
-                  {baseArea > 0 && (
-                    <div className="mt-3 text-sm font-medium text-[var(--text-secondary)]" data-testid="req-base-area">
-                      Calculated plot footprint: <span className="font-bold text-[var(--text-primary)]">≈ {baseArea.toLocaleString("en-IN")} sq.ft.</span>
-                    </div>
-                  )}
-                </ReqCard>
                 <ReqCard title="Add Your Storey" subtitle="Ground + additional floors">
                   <div className="bd-card-surface flex items-center justify-between rounded-xl px-3 py-2">
                     <button onClick={() => setStoreys((s) => Math.max(0, s - 1))} data-testid="req-storey-minus" className="bd-req-iconbtn w-9 h-9 grid place-items-center rounded-full"><ChevronDown className="w-4 h-4" /></button>
                     <span className="text-lg font-bold text-[var(--text-primary)]" data-testid="req-storey-val">G + {storeys}</span>
                     <button onClick={() => setStoreys((s) => Math.min(9, s + 1))} data-testid="req-storey-plus" className="bd-req-iconbtn w-9 h-9 grid place-items-center rounded-full"><ChevronUp className="w-4 h-4" /></button>
                   </div>
-                  <div className="flex gap-3 overflow-x-auto mt-3 hide-scrollbar pb-1" data-testid="req-floor-areas">
+                </ReqCard>
+                <ReqCard title="Floor Dimensions (ft)" subtitle="Enter all four sides — built-up area is calculated automatically">
+                  {/* Floor selector — one floor at a time, mobile-friendly */}
+                  <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1" data-testid="req-floor-tabs">
                     {Array.from({ length: storeys + 1 }).map((_, i) => (
-                      <div key={i} className="shrink-0 w-[160px] bd-card-surface rounded-xl p-3">
-                        <div className="text-xs text-[var(--text-secondary)] mb-1.5">{floorName(i)}{i === 0 && baseArea > 0 ? " · auto" : ""}</div>
-                        <ReqField placeholder="Area sq.ft." type="number" inputMode="numeric" value={floors[i]?.area || ""} testid={`req-floor-area-${i}`} onChange={(v) => { if (i === 0) autoGfRef.current = null; updFloor(i, { area: v }); }} />
-                        {incompleteFloors.includes(i) && (
-                          <div className="mt-1.5 text-[11px] font-medium" style={{ color: "var(--status-warning)" }} data-testid={`req-floor-error-${i}`}>Enter built-up area for this floor.</div>
-                        )}
-                      </div>
+                      <button key={i} data-testid={`req-floor-tab-${i}`} onClick={() => setActiveFloor(i)}
+                        className={`bd-req-seg ${activeFloor === i ? "bd-req-seg--on" : ""} shrink-0 px-4 py-2 rounded-full text-xs font-semibold inline-flex items-center gap-1.5`}>
+                        {floorName(i)}
+                        {calcFloorArea(floors[i]) > 0 && <span className="text-[10px] font-bold opacity-70">{calcFloorArea(floors[i]).toLocaleString("en-IN")} sq.ft.</span>}
+                      </button>
                     ))}
+                  </div>
+                  <div className="mt-3" data-testid="req-floor-panel">
+                    <div className="text-xs text-[var(--text-secondary)] mb-2" data-testid="req-floor-panel-title">{floorName(activeFloor)}</div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <ReqField placeholder="Front Side" type="number" inputMode="numeric" value={floors[activeFloor]?.front ?? ""} testid="req-dim-front" onChange={(v) => updFloor(activeFloor, { front: v })} />
+                      <ReqField placeholder="Right Side" type="number" inputMode="numeric" value={floors[activeFloor]?.right ?? ""} testid="req-dim-right" onChange={(v) => updFloor(activeFloor, { right: v })} />
+                      <ReqField placeholder="Back Side" type="number" inputMode="numeric" value={floors[activeFloor]?.back ?? ""} testid="req-dim-back" onChange={(v) => updFloor(activeFloor, { back: v })} />
+                      <ReqField placeholder="Left Side" type="number" inputMode="numeric" value={floors[activeFloor]?.left ?? ""} testid="req-dim-left" onChange={(v) => updFloor(activeFloor, { left: v })} />
+                    </div>
+                    {calcFloorArea(floors[activeFloor]) > 0 ? (
+                      <div className="mt-3 text-sm font-medium text-[var(--text-secondary)]" data-testid={`req-floor-area-${activeFloor}`}>
+                        {floorName(activeFloor)} Built-up Area: <span className="font-bold text-[var(--text-primary)]">{calcFloorArea(floors[activeFloor]).toLocaleString("en-IN")} sq.ft.</span>
+                      </div>
+                    ) : hasAnyDim(floors[activeFloor]) ? (
+                      <div className="mt-2 text-[11px] font-medium" style={{ color: "var(--status-warning)" }} data-testid={`req-floor-error-${activeFloor}`}>Enter all four dimensions for this floor.</div>
+                    ) : (
+                      <div className="mt-2 text-[11px] text-[var(--text-muted)]" data-testid={`req-floor-hint-${activeFloor}`}>Enter all four dimensions to calculate the built-up area for this floor.</div>
+                    )}
                   </div>
                   <div className="mt-3 text-sm font-semibold text-[var(--text-primary)]" data-testid="req-total-area">Total Built-up Area: <span className="text-[var(--text-primary)]">{totalArea.toLocaleString("en-IN")} sq.ft.</span></div>
                 </ReqCard>
@@ -556,8 +600,25 @@ export default function RequirementForm({ onClose }) {
                     <ReqImageCard key={s} testid={`req-elev-style-${s}`} image={ELEV_IMAGES[s]} label={s.replace(" Design", "")} sublabel={`${s}`} selected={elevation.style === s} onClick={() => setElevation({ ...elevation, style: s })} />
                   ))}</div>
                 </ReqCard>
-                <ReqCard title="Select elevation views">
-                  <ReqChips items={ELEV_VIEWS} selected={elevation.views} onToggle={(v) => setElevation({ ...elevation, views: elevation.views.includes(v) ? elevation.views.filter((x) => x !== v) : [...elevation.views, v] })} />
+                <ReqCard title="Select elevation views" subtitle="Front view is included by default — add more sides if you need them">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5" data-testid="req-elev-views">
+                    <div data-testid="req-elev-view-front-included"
+                      className="bd-req-chip bd-req-chip--on flex items-center gap-2 text-sm font-semibold px-3.5 py-3 min-h-[48px] rounded-xl text-left leading-tight cursor-default">
+                      <Check className="w-3.5 h-3.5 bd-req-accent shrink-0" />
+                      <span className="min-w-0">Front Design<span className="block text-[10px] font-medium opacity-70">Included · FREE</span></span>
+                    </div>
+                    {ELEV_ADDL_VIEWS.map((v) => {
+                      const on = elevation.views.includes(v);
+                      return (
+                        <button key={v} type="button" data-testid={`req-elev-view-${v.replace(/\s+/g, "-").toLowerCase()}`}
+                          onClick={() => setElevation({ ...elevation, views: on ? elevation.views.filter((x) => x !== v) : [...elevation.views, v] })}
+                          className={`bd-req-chip ${on ? "bd-req-chip--on" : ""} flex items-center gap-2 text-sm font-semibold px-3.5 py-3 min-h-[48px] rounded-xl text-left leading-tight`}>
+                          {on && <Check className="w-3.5 h-3.5 bd-req-accent shrink-0" />}
+                          <span className="min-w-0">{v}<span className="block text-[10px] font-medium opacity-70">20% less than front</span></span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </ReqCard>
               </>
             )}
@@ -570,7 +631,8 @@ export default function RequirementForm({ onClose }) {
                       <div key={i} className="flex items-start justify-between gap-3 py-2 border-b last:border-0" style={{ borderColor: "var(--border-divider)" }}>
                         <div>
                           <div className="text-sm font-semibold text-[var(--text-primary)]">{floorName(i)}</div>
-                          <div className="text-[11px] text-[var(--text-secondary)]">{f.purpose} · {f.area ? `${f.area} sq.ft.` : "—"} · {(f.bedrooms || 0)} BR</div>
+                          <div className="text-[11px] text-[var(--text-secondary)]">{f.purpose} · {calcFloorArea(f) > 0 ? `${calcFloorArea(f).toLocaleString("en-IN")} sq.ft.` : "—"} · {(f.bedrooms || 0)} BR</div>
+                          <div className="text-[11px] text-[var(--text-muted)]">F {f.front || "—"} · R {f.right || "—"} · B {f.back || "—"} · L {f.left || "—"} ft</div>
                         </div>
                         <div className="text-[11px] text-[var(--text-secondary)] text-right max-w-[45%]">
                           {[...(f.indoor || []), ...(f.outdoor || [])].slice(0, 3).join(", ") || "No amenities"}
