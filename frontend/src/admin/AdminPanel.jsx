@@ -2,12 +2,13 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api, { setStoredToken } from "@/lib/api";
 import getIcon, { ICON_NAMES } from "@/components/home/iconMap";
+import PasswordInput from "@/components/PasswordInput";
 import { toast } from "sonner";
 import {
   LayoutDashboard, Users, FolderKanban, UserSquare, MessagesSquare, Boxes,
   FileSignature, Wallet, FileText, Globe, Tag, LayoutTemplate, MapPin, Settings,
   LogOut, ChevronDown, ChevronRight, Upload, Trash2, Eye, Loader2, Save, Send,
-  ArrowUp, ArrowDown, ImageIcon, Film, Music, X,
+  ArrowUp, ArrowDown, ImageIcon, Film, Music, X, KeyRound,
 } from "lucide-react";
 
 const SIDEBAR = [
@@ -124,6 +125,7 @@ export default function AdminPanel() {
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [pwOpen, setPwOpen] = useState(false);
 
   useEffect(() => {
     api.get("/auth/me").then(({ data }) => {
@@ -201,8 +203,13 @@ export default function AdminPanel() {
             </div>
           ))}
         </nav>
-        <button onClick={logout} data-testid="admin-logout" className="m-3 flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium" style={{ color: "#B5B5B5", border: "1px solid #292929" }}><LogOut className="w-4 h-4" /> Sign out</button>
+        <div className="m-3 space-y-2">
+          <button onClick={() => setPwOpen(true)} data-testid="admin-change-password-btn" className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium" style={{ color: "#B5B5B5", border: "1px solid #292929" }}><KeyRound className="w-4 h-4" /> Change Password</button>
+          <button onClick={logout} data-testid="admin-logout" className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium" style={{ color: "#B5B5B5", border: "1px solid #292929" }}><LogOut className="w-4 h-4" /> Sign out</button>
+        </div>
       </aside>
+
+      {pwOpen && <ChangePasswordModal onClose={() => setPwOpen(false)} />}
 
       {/* Main */}
       <main className="flex-1 min-w-0 flex flex-col">
@@ -313,6 +320,50 @@ export default function AdminPanel() {
           )}
         </div>
       </main>
+    </div>
+  );
+}
+
+function ChangePasswordModal({ onClose }) {
+  const [cur, setCur] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  const submit = async (e) => {
+    e?.preventDefault();
+    setErr("");
+    if (next.length < 6) { setErr("New password must be at least 6 characters."); return; }
+    if (next !== confirm) { setErr("Passwords do not match."); return; }
+    setBusy(true);
+    try {
+      await api.post("/auth/change-password", { current_password: cur, new_password: next });
+      toast.success("Password updated");
+      onClose?.();
+    } catch (e2) {
+      setErr(e2.response?.data?.detail || "Could not update password.");
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100000] grid place-items-center px-4" style={{ background: "rgba(0,0,0,0.6)" }} data-testid="admin-change-password-modal">
+      <form onSubmit={submit} className="w-full max-w-sm rounded-2xl p-6" style={{ background: "#111111", border: "1px solid #292929" }}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold" style={{ color: "#F5F5F5" }}>Change Password</h3>
+          <button type="button" onClick={onClose} data-testid="admin-pw-close" className="w-9 h-9 grid place-items-center rounded-full" style={{ color: "#B5B5B5" }}><X className="w-4 h-4" /></button>
+        </div>
+        {err && <div data-testid="admin-pw-error" className="mb-3 text-sm rounded-lg px-3 py-2" style={{ color: "#F87171", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)" }}>{err}</div>}
+        <label className="block text-[11px] font-semibold mb-1.5" style={{ color: "#B5B5B5" }}>Current Password</label>
+        <PasswordInput variant="dark" testid="admin-pw-current" placeholder="Current password" value={cur} onChange={setCur} autoComplete="current-password" />
+        <label className="block text-[11px] font-semibold mb-1.5 mt-3" style={{ color: "#B5B5B5" }}>New Password</label>
+        <PasswordInput variant="dark" testid="admin-pw-new" placeholder="New password (min 6)" value={next} onChange={setNext} autoComplete="new-password" />
+        <label className="block text-[11px] font-semibold mb-1.5 mt-3" style={{ color: "#B5B5B5" }}>Confirm New Password</label>
+        <PasswordInput variant="dark" testid="admin-pw-confirm" placeholder="Confirm new password" value={confirm} onChange={setConfirm} autoComplete="new-password" />
+        <button type="submit" disabled={busy} data-testid="admin-pw-submit" className="w-full mt-5 py-3 rounded-full font-bold inline-flex items-center justify-center gap-2 disabled:opacity-60" style={{ background: "#C9A24A", color: "#0B0B0B" }}>
+          {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />} Update Password
+        </button>
+      </form>
     </div>
   );
 }

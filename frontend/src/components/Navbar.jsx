@@ -15,20 +15,21 @@ import SearchOverlay from "@/components/SearchOverlay";
 import MobileDrawer from "@/components/MobileDrawer";
 import { ThemeToggleButton } from "@/components/ThemeToggle";
 import { profileMenuForRole, displayRoleLabel } from "@/lib/roleMenu";
+import { goToSection, scrollTop } from "@/lib/navScroll";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// Frozen public navigation (docs/rules.md §8). Pages not yet rebuilt use an
-// honest "coming soon" toast instead of silently redirecting home.
+// Frozen public navigation (docs/rules.md §8). How It Works / About / FAQs /
+// Contact map to Homepage sections via stable ids until standalone pages ship.
 const NAV = [
-  { name: "Home", to: "/" },
+  { name: "Home", to: "/", home: true },
   { name: "Projects", to: "/projects", projects: true },
-  { name: "How It Works", to: "/how-it-works", soon: true },
-  { name: "About Us", to: "/about", soon: true },
-  { name: "FAQs", to: "/faqs", soon: true },
-  { name: "Contact Us", to: "/contact", soon: true },
+  { name: "How It Works", to: "/how-it-works", section: "how-it-works" },
+  { name: "About Us", to: "/about", section: "about" },
+  { name: "FAQs", to: "/faqs", section: "faqs" },
+  { name: "Contact Us", to: "/contact", section: "contact" },
 ];
 
 export default function Navbar() {
@@ -39,6 +40,7 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [activeSection, setActiveSection] = useState("");
   const loc = useLocation();
   const navigate = useNavigate();
   const isHome = loc.pathname === "/";
@@ -52,6 +54,38 @@ export default function Navbar() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  // Scroll-spy — highlights the active nav item as the matching Homepage
+  // section scrolls under the sticky navbar.
+  useEffect(() => {
+    if (!isHome) { setActiveSection(""); return undefined; }
+    const ids = ["how-it-works", "about", "faqs", "contact"];
+    const onScroll = () => {
+      const pos = window.scrollY + 90;
+      let cur = "";
+      for (const id of ids) {
+        const el = document.getElementById(id);
+        if (el && el.offsetTop <= pos) cur = id;
+      }
+      setActiveSection(cur);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [isHome]);
+
+  const isActive = (n) => {
+    if (n.home) return isHome && !activeSection;
+    if (n.section) return isHome && activeSection === n.section;
+    return false;
+  };
+
+  const onNavClick = (n) => (e) => {
+    e.preventDefault();
+    if (n.home) { if (isHome) scrollTop(); else navigate("/"); return; }
+    if (n.projects) { goProjects(e); return; }
+    if (n.section) { goToSection({ id: n.section, navigate, pathname: loc.pathname }); return; }
+  };
 
   // Plan Your Dream Home → BDesigner requirement entry point. Until the
   // dedicated Requirement Form ships, route through the existing enquiry
@@ -80,6 +114,7 @@ export default function Navbar() {
     e.preventDefault();
     toast.info(`${label} page is coming soon.`);
   };
+  void goSoon;
 
   return (
     <>
@@ -133,8 +168,8 @@ export default function Navbar() {
               key={n.to}
               to={n.to}
               data-testid={`nav-${n.name.toLowerCase().replace(/[^a-z]+/g, "-")}`}
-              onClick={n.projects ? goProjects : n.soon ? goSoon(n.name) : undefined}
-              className={`nav-link relative whitespace-nowrap ${loc.pathname === n.to ? "active" : ""}`}
+              onClick={onNavClick(n)}
+              className={`nav-link relative whitespace-nowrap ${isActive(n) ? "active" : ""}`}
             >
               {n.name}
             </Link>
@@ -259,10 +294,10 @@ export default function Navbar() {
           </button>
           {user && user.id ? (
             <Link
-              to="/profile"
+              to="/client"
               data-testid="mobile-profile-btn"
               className={`${iconBtn} overflow-hidden`}
-              aria-label="Profile"
+              aria-label="Account"
             >
               {user.avatar ? (
                 <img src={user.avatar} alt={user.name} className="w-9 h-9 rounded-full" />

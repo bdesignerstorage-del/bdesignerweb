@@ -24,6 +24,7 @@ import BDRouteTransition from "@/components/bd/BDRouteTransition";
 import { Toaster } from "@/components/ui/sonner";
 import Home from "@/pages/Home";
 import ProjectDetail from "@/pages/ProjectDetail";
+import ClientHome from "@/pages/ClientHome";
 
 function ChromeFrame({ children }) {
   const loc = useLocation();
@@ -97,6 +98,7 @@ function App() {
                   <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/projects/:id" element={<ProjectDetail />} />
+                    <Route path="/client" element={<ClientHome />} />
                     <Route path="/admin/login" element={<AdminLogin />} />
                     <Route path="/admin" element={<AdminPanel />} />
 

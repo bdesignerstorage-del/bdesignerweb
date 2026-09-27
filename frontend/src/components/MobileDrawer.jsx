@@ -12,6 +12,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useLeadModal } from "@/context/LeadModalContext";
 import { useRequirementForm } from "@/context/RequirementFormContext";
 import { ThemeSegmented } from "@/components/ThemeToggle";
+import { goToSection, scrollTop } from "@/lib/navScroll";
 
 /**
  * MobileDrawer — left-side slide-in navigation.
@@ -137,6 +138,17 @@ export default function MobileDrawer({ open, onClose, onOpenSearch }) {
     onClose?.();
     setTimeout(() => toast.info(`${label} page is coming soon.`), 240);
   };
+  void goSoon;
+
+  // How It Works / About / FAQs / Contact map to Homepage sections.
+  const goSection = (id) => () => {
+    onClose?.();
+    setTimeout(() => goToSection({ id, navigate, pathname: loc.pathname }), 240);
+  };
+  const goHome = () => {
+    onClose?.();
+    setTimeout(() => { if (loc.pathname === "/") scrollTop(); else navigate("/"); }, 220);
+  };
 
   return createPortal(
     <div
@@ -204,12 +216,12 @@ export default function MobileDrawer({ open, onClose, onOpenSearch }) {
         >
           {/* NAVIGATION */}
           <Section title="NAVIGATION">
-            <MenuLink to="/" icon={Home} label="Home" onClose={onClose} testid="drawer-home" />
+            <MenuAction onClick={goHome} icon={Home} label="Home" testid="drawer-home" />
             <MenuAction onClick={goProjects} icon={FolderOpen} label="Projects" testid="drawer-projects" />
-            <MenuAction onClick={goSoon("How It Works")} icon={Compass} label="How It Works" testid="drawer-how-it-works" />
-            <MenuAction onClick={goSoon("About Us")} icon={Info} label="About Us" testid="drawer-about" />
-            <MenuAction onClick={goSoon("FAQs")} icon={HelpCircle} label="FAQs" testid="drawer-faqs" />
-            <MenuAction onClick={goSoon("Contact Us")} icon={Phone} label="Contact Us" testid="drawer-contact" />
+            <MenuAction onClick={goSection("how-it-works")} icon={Compass} label="How It Works" testid="drawer-how-it-works" />
+            <MenuAction onClick={goSection("about")} icon={Info} label="About Us" testid="drawer-about" />
+            <MenuAction onClick={goSection("faqs")} icon={HelpCircle} label="FAQs" testid="drawer-faqs" />
+            <MenuAction onClick={goSection("contact")} icon={Phone} label="Contact Us" testid="drawer-contact" />
           </Section>
 
           {/* GET STARTED */}
@@ -218,7 +230,7 @@ export default function MobileDrawer({ open, onClose, onOpenSearch }) {
             <MenuAction onClick={getApp} icon={Smartphone} label="Get BDesigner App" testid="drawer-get-app" />
             {isLoggedIn ? (
               <>
-                <MenuLink to="/profile" icon={UserCircle2} label={user.name || "My Account"} onClose={onClose} testid="drawer-my-account" />
+                <MenuLink to="/client" icon={UserCircle2} label={user.name || "My Account"} onClose={onClose} testid="drawer-my-account" />
                 <MenuAction onClick={() => { onClose?.(); setTimeout(logout, 200); }} icon={LogOut} label="Logout" testid="drawer-logout" tone="danger" />
               </>
             ) : (

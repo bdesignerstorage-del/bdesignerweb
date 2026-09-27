@@ -15,8 +15,9 @@ export default function ConstructionProcess({ items = [] }) {
 
   return (
     <section
+      id="how-it-works"
       data-testid="construction-process-section"
-      className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12"
+      className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 scroll-mt-20"
     >
       <div className="mb-4 sm:mb-6">
         <p className="text-[11px] sm:text-xs uppercase tracking-[0.18em] font-semibold bd-eyebrow">How It Works</p>

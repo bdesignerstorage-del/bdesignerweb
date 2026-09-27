@@ -24,8 +24,9 @@ export default function WhyChooseBDesigner({ items = [], settings = {} }) {
   const heading = cms.heading || "Why Choose BDesigner";
   return (
     <section
+      id="about"
       data-testid="why-choose-section"
-      className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14"
+      className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 scroll-mt-20"
     >
       <div className="mb-6 sm:mb-8">
         <p className="text-[11px] sm:text-xs uppercase tracking-[0.18em] font-semibold bd-eyebrow">{eyebrow}</p>

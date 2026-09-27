@@ -132,6 +132,11 @@ class LoginIn(BaseModel):
     remember_me: Optional[bool] = False
 
 
+class ChangePasswordIn(BaseModel):
+    current_password: str
+    new_password: str
+
+
 class CommentIn(BaseModel):
     text: str
     rating: Optional[int] = None
@@ -198,7 +203,7 @@ async def login(payload: LoginIn, response: Response):
         "email": email,
         "role": user.get("role", "client"),
         "avatar": user.get("avatar"),
-        "must_change_password": False,
+        "must_change_password": bool(user.get("must_change_password", False)),
         "token": token,
     }
 
@@ -212,6 +217,34 @@ async def auth_me(user: dict = Depends(current_user)):
 async def logout(response: Response):
     response.delete_cookie("access_token", path="/")
     return {"ok": True}
+
+
+@api.post("/auth/change-password")
+async def change_password(payload: ChangePasswordIn, user: dict = Depends(current_user)):
+    """Authenticated password change. Verifies the current password against the
+    stored bcrypt hash, then stores the new hash. Never logs or returns passwords."""
+    record = await db.users.find_one({"id": user["id"]})
+    if not record or not verify_password(payload.current_password, record.get("password_hash") or ""):
+        raise HTTPException(status_code=400, detail="Current password is incorrect.")
+    new_pw = payload.new_password or ""
+    if len(new_pw) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters.")
+    if verify_password(new_pw, record.get("password_hash") or ""):
+        raise HTTPException(status_code=400, detail="New password must be different from the current password.")
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"password_hash": hash_password(new_pw), "must_change_password": False, "password_changed_at": now_iso()}},
+    )
+    return {"ok": True, "message": "Password updated successfully."}
+
+
+@api.get("/auth/providers")
+async def auth_providers():
+    """Reports which external auth providers are configured. Google is enabled
+    ONLY when real OAuth credentials exist — otherwise the UI shows an honest
+    'not connected' state instead of faking a login (docs/rules.md §19)."""
+    google_enabled = bool((os.environ.get("GOOGLE_CLIENT_ID") or "").strip())
+    return {"google_enabled": google_enabled}
 
 
 @api.post("/auth/forgot")
@@ -552,6 +585,28 @@ async def requirement_submit(payload: RequirementSubmitIn, request: Request):
     }
     await db.leads.insert_one(doc.copy())
     return {"ok": True, "lead_id": lead_id, "total": round(total, 2)}
+
+
+@api.get("/client/summary")
+async def client_summary(user: dict = Depends(current_user)):
+    """Authenticated client's own requirements/projects. Scoped strictly to the
+    logged-in user so a client only ever sees their own submissions."""
+    leads = await db.leads.find(
+        {"client_user_id": user["id"]}, {"_id": 0}
+    ).sort([("created_at", -1)]).to_list(100)
+    projects = [
+        {
+            "id": l.get("id"),
+            "project_name": l.get("project_name") or "Untitled Project",
+            "status": l.get("status", "new"),
+            "total_architectural_charge": l.get("total_architectural_charge", 0),
+            "location": (l.get("requirement") or {}).get("address", {}).get("label") if isinstance((l.get("requirement") or {}).get("address"), dict) else None,
+            "services_count": len(l.get("selected_services") or []),
+            "created_at": l.get("created_at"),
+        }
+        for l in leads
+    ]
+    return {"count": len(projects), "projects": projects}
 
 
 

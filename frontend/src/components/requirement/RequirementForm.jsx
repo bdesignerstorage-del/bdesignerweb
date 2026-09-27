@@ -7,6 +7,8 @@ import {
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+import PasswordInput from "@/components/PasswordInput";
+import GoogleAuthButton from "@/components/GoogleAuthButton";
 import {
   ReqCard, ReqField, ReqSegmented, ReqCounter, ReqChips, ReqImageCard, ReqRow,
   ELEV_IMAGES, rupee, GoogleIcon,
@@ -28,7 +30,7 @@ function loadDraft() {
 }
 
 export default function RequirementForm({ onClose }) {
-  const { register, user } = useAuth();
+  const { register, user, setAuthOpen, setAuthMode } = useAuth();
   const saved = loadDraft();
   const [step, setStep] = useState(saved?.step || 1);
   const [services, setServices] = useState([]);
@@ -47,9 +49,11 @@ export default function RequirementForm({ onClose }) {
   const [elevation, setElevation] = useState(saved?.elevation || { style: "", views: [] });
   const [priceLines, setPriceLines] = useState([]);
   const [total, setTotal] = useState(0);
-  const [reg, setReg] = useState({ name: user?.name || "", mobile: "", email: user?.email || "", password: "" });
+  const [reg, setReg] = useState({ name: user?.name || "", mobile: "", email: user?.email || "", password: "", confirmPassword: "" });
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState("");
+  const [emailExists, setEmailExists] = useState(false);
+  const [resumeAfterLogin, setResumeAfterLogin] = useState(false);
 
   useEffect(() => {
     document.body.classList.add("lead-modal-open");
@@ -135,9 +139,12 @@ export default function RequirementForm({ onClose }) {
   const STEPS = useMemo(() => {
     const base = [1, 2, 3, 4, 5];
     if (wantsElevation) base.push(6);
-    base.push(7, 8);
+    base.push(7);
+    // Registration (step 8) is only for anonymous visitors. An authenticated
+    // client saves the project against their own account from the Summary.
+    if (!user?.id) base.push(8);
     return base;
-  }, [wantsElevation]);
+  }, [wantsElevation, user]);
 
   // Keep `step` valid if the elevation step appears/disappears (avoids a stuck state).
   useEffect(() => {
@@ -183,23 +190,75 @@ export default function RequirementForm({ onClose }) {
     });
   }, [reg, projectName, selected, totalArea, floors, storeys, dims, address, construction, elevation, wantsElevation, serviceable]);
 
-  const handleRegister = async () => {
+  // Authenticated client saving the project directly from Summary (Flow E /
+  // logged-in user). No registration, uses their own account.
+  const handleProjectSubmit = useCallback(async () => {
     setErr(""); setSubmitting(true);
+    try {
+      await submitLead({ name: user?.name, email: user?.email, mobile: reg.mobile });
+      try { localStorage.removeItem(LS_KEY); } catch {}
+      toast.success("Your project has been saved.");
+      onClose?.();
+    } catch (e) {
+      setErr(e.response?.data?.detail || e.message || "Something went wrong.");
+    } finally { setSubmitting(false); }
+  }, [submitLead, user, reg.mobile, onClose]);
+
+  const handleRegister = async () => {
+    setErr(""); setEmailExists(false); setSubmitting(true);
     try {
       const name = reg.name.trim(); const mobile = reg.mobile.replace(/\D/g, ""); const email = reg.email.trim();
       if (!name) throw new Error("Please enter your full name.");
       if (mobile.length < 10) throw new Error("Enter a valid 10-digit mobile number.");
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error("Enter a valid email.");
-      if (!user?.id && reg.password.length < 6) throw new Error("Password must be at least 6 characters.");
-      if (!user?.id) await register(name, email, reg.password, mobile, "client");
+      if (!user?.id) {
+        if (reg.password.length < 6) throw new Error("Password must be at least 6 characters.");
+        if (reg.password !== reg.confirmPassword) throw new Error("Passwords do not match.");
+        await register(name, email, reg.password, mobile, "client");
+      }
       await submitLead({ name, mobile, email });
       try { localStorage.removeItem(LS_KEY); } catch {}
       toast.success("Account created — your project requirement is saved.");
       onClose?.();
     } catch (e) {
-      setErr(e.response?.data?.detail || e.message || "Something went wrong.");
+      const detail = e.response?.data?.detail || e.message || "Something went wrong.";
+      // Email uniqueness — offer to log in and resume with the draft intact.
+      if (/already registered|already exists/i.test(String(detail))) {
+        setEmailExists(true);
+        setErr("An account already exists with this email.");
+      } else {
+        setErr(detail);
+      }
     } finally { setSubmitting(false); }
   };
+
+  // Flow D: user chose "Login to Continue" from the existing-email state.
+  // Open the login modal (draft stays in localStorage). When they become
+  // authenticated we resume the submission automatically.
+  const loginToContinue = () => {
+    setResumeAfterLogin(true);
+    try { sessionStorage.setItem("bd_suppress_auth_redirect", "1"); } catch {}
+    setReg((r) => ({ ...r }));
+    setAuthMode("login");
+    setAuthOpen(true);
+  };
+
+  useEffect(() => {
+    if (resumeAfterLogin && user?.id) {
+      setResumeAfterLogin(false);
+      (async () => {
+        setSubmitting(true);
+        try {
+          await submitLead({ name: user.name, email: user.email, mobile: reg.mobile });
+          try { localStorage.removeItem(LS_KEY); } catch {}
+          toast.success("Logged in — your project requirement is saved.");
+          onClose?.();
+        } catch (e) {
+          setErr(e.response?.data?.detail || e.message || "Something went wrong.");
+        } finally { setSubmitting(false); }
+      })();
+    }
+  }, [resumeAfterLogin, user, submitLead, reg.mobile, onClose]);
 
   const STEP_META = {
     1: { n: 1, title: "Select Architectural Services", help: "Choose the design services you need for your dream home." },
@@ -219,7 +278,13 @@ export default function RequirementForm({ onClose }) {
   if (step === 1) ctaLabel = "Continue";
   if (step === 2) ctaDisabled = !step2Complete;
   if (step === 7) {
-    ctaLabel = "Continue With This Project"; ctaAction = () => setStep(8);
+    if (user?.id) {
+      ctaLabel = submitting ? "Saving…" : "Create This Project";
+      ctaAction = handleProjectSubmit; ctaDisabled = submitting;
+      ctaIcon = submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />;
+    } else {
+      ctaLabel = "Continue With This Project"; ctaAction = () => setStep(8);
+    }
     secondary = { label: "Edit Requirement", action: () => setStep(1) };
   }
   if (step === 8) {
@@ -523,20 +588,26 @@ export default function RequirementForm({ onClose }) {
 
             {step === 8 && (
               <div className="space-y-3" data-testid="req-registration">
-                <button
-                  data-testid="req-google-btn"
-                  onClick={() => toast.info("Google sign-in isn't connected yet — please continue with email below.")}
-                  className="w-full flex items-center justify-center gap-3 py-3.5 rounded-xl font-semibold text-[15px] transition"
-                  style={{ background: "#FFFFFF", color: "#111111", border: "1px solid #DADCE0", boxShadow: "0 1px 3px rgba(0,0,0,0.12)" }}
-                >
-                  <GoogleIcon className="w-5 h-5" />
-                  <span style={{ color: "#111111", WebkitTextFillColor: "#111111" }}>Continue with Google</span>
-                </button>
+                <GoogleAuthButton label="Continue with Google" testid="req-google-btn" onStart={() => { try { sessionStorage.setItem("bd_suppress_auth_redirect", "1"); } catch {} }} />
                 <div className="flex items-center gap-2 text-[11px] text-[var(--text-secondary)]"><span className="flex-1 h-px" style={{ background: "var(--border-primary)" }} />or continue with email<span className="flex-1 h-px" style={{ background: "var(--border-primary)" }} /></div>
                 <ReqField placeholder="Full Name" value={reg.name} testid="req-reg-name" onChange={(v) => setReg({ ...reg, name: v })} />
                 <ReqField placeholder="Mobile Number (10 digits)" value={reg.mobile} inputMode="numeric" testid="req-reg-mobile" onChange={(v) => setReg({ ...reg, mobile: v.replace(/[^\d]/g, "") })} />
-                <ReqField placeholder="Email" type="email" value={reg.email} testid="req-reg-email" onChange={(v) => setReg({ ...reg, email: v })} icon={<Mail className="w-4 h-4" />} />
-                {!user?.id && <ReqField placeholder="Password (min 6)" type="password" value={reg.password} testid="req-reg-password" onChange={(v) => setReg({ ...reg, password: v })} />}
+                <ReqField placeholder="Email" type="email" value={reg.email} testid="req-reg-email" onChange={(v) => { setReg({ ...reg, email: v }); setEmailExists(false); }} icon={<Mail className="w-4 h-4" />} />
+                <PasswordInput variant="req" placeholder="Password (min 6)" value={reg.password} testid="req-reg-password" autoComplete="new-password" onChange={(v) => setReg({ ...reg, password: v })} />
+                <div>
+                  <PasswordInput variant="req" placeholder="Confirm Password" value={reg.confirmPassword} testid="req-reg-confirm-password" autoComplete="new-password" onChange={(v) => setReg({ ...reg, confirmPassword: v })} />
+                  {reg.confirmPassword.length > 0 && reg.password !== reg.confirmPassword && (
+                    <p data-testid="req-password-mismatch" className="mt-1.5 text-xs font-medium" style={{ color: "var(--status-error)" }}>Passwords do not match.</p>
+                  )}
+                </div>
+                {emailExists && (
+                  <div className="rounded-xl px-3.5 py-3 space-y-2" style={{ background: "var(--surface-secondary)", border: "1px solid var(--border-primary)" }} data-testid="req-email-exists">
+                    <p className="text-sm text-[var(--text-secondary)]">An account already exists with this email. Log in to continue — your project details are saved.</p>
+                    <button data-testid="req-login-to-continue" onClick={loginToContinue} className="bd-req-cta rounded-full px-5 py-2.5 text-sm inline-flex items-center justify-center gap-2 w-full">
+                      Login to Continue
+                    </button>
+                  </div>
+                )}
                 {/* mobile: show the create button inline too */}
                 <div className="lg:hidden pt-1"><CtaButtons full /></div>
               </div>

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
 import { toast } from "sonner";
+import PasswordInput from "@/components/PasswordInput";
+import GoogleAuthButton from "@/components/GoogleAuthButton";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -26,11 +28,11 @@ import {
  *   3. Confirm-password field with inline mismatch validation.
  */
 const ROLE_TARGETS = {
-  admin: "/admin/dashboard",
+  admin: "/admin",
   project_manager: "/pm/dashboard",
   civil_engineer: "/engineer/dashboard",
-  client: "/client/dashboard",
-  customer: "/client/dashboard",
+  client: "/client",
+  customer: "/client",
   brand_partner: "/brand/dashboard",
 };
 
@@ -44,6 +46,7 @@ export default function AuthModal() {
   const effectiveView = view || authMode || "login";
 
   const location = useLocation();
+  const navigate = useNavigate();
 
   const [loginForm, setLoginForm] = useState({ email: "", password: "", remember: false });
   // Public signup always creates a House Owner (client). The role field is
@@ -58,11 +61,24 @@ export default function AuthModal() {
 
   useEffect(() => {
     if (authOpen && user && user.id) {
-      const target = ROLE_TARGETS[user.role];
+      // Flow D: login was launched from the Requirement Form to resume a
+      // pending draft — suppress the hard redirect so the form can continue.
+      if (sessionStorage.getItem("bd_suppress_auth_redirect") === "1") {
+        sessionStorage.removeItem("bd_suppress_auth_redirect");
+        setAuthOpen(false);
+        return;
+      }
       setAuthOpen(false);
-      if (target) window.location.href = target;
+      // Honor an explicit intended destination first (Flow C — return to
+      // the page/flow the user was trying to reach), else role home.
+      let target = null;
+      try { target = sessionStorage.getItem("bd_post_login_redirect"); } catch { /* ignore */ }
+      if (target) { try { sessionStorage.removeItem("bd_post_login_redirect"); } catch { /* ignore */ } }
+      const dest = target || ROLE_TARGETS[user.role] || "/client";
+      if (dest.startsWith("/client")) navigate(dest);
+      else window.location.href = dest;
     }
-  }, [authOpen, user, setAuthOpen]);
+  }, [authOpen, user, setAuthOpen, navigate]);
 
   useEffect(() => {
     try {
@@ -247,6 +263,10 @@ export default function AuthModal() {
         <div className="overflow-y-auto flex-1 [-webkit-overflow-scrolling:touch]">
           {effectiveView === "login" && (
             <form onSubmit={handleLogin} className="px-8 pb-8 pt-6 space-y-4">
+              <GoogleAuthButton label="Continue with Google" testid="login-google-btn" />
+              <div className="flex items-center gap-3 text-[11px] text-slate-400 font-medium">
+                <span className="flex-1 h-px bg-slate-200" />or continue with email<span className="flex-1 h-px bg-slate-200" />
+              </div>
               <Field
                 icon={<Mail className="w-4 h-4" />}
                 testid="auth-email-input"
@@ -256,13 +276,12 @@ export default function AuthModal() {
                 onChange={(v) => setLoginForm({ ...loginForm, email: v })}
                 required
               />
-              <Field
-                icon={<Lock className="w-4 h-4" />}
+              <PasswordInput
                 testid="auth-password-input"
                 placeholder="Password"
-                type="password"
                 value={loginForm.password}
                 onChange={(v) => setLoginForm({ ...loginForm, password: v })}
+                autoComplete="current-password"
                 required
                 minLength={6}
               />
@@ -308,6 +327,10 @@ export default function AuthModal() {
               className="px-8 pb-8 pt-6 space-y-4"
               data-testid="register-form"
             >
+              <GoogleAuthButton label="Continue with Google" testid="register-google-btn" />
+              <div className="flex items-center gap-3 text-[11px] text-slate-400 font-medium">
+                <span className="flex-1 h-px bg-slate-200" />or continue with email<span className="flex-1 h-px bg-slate-200" />
+              </div>
               <Field
                 icon={<User className="w-4 h-4" />}
                 testid="register-name-input"
@@ -337,24 +360,22 @@ export default function AuthModal() {
                 onChange={(v) => setRegForm({ ...regForm, email: v })}
                 required
               />
-              <Field
-                icon={<Lock className="w-4 h-4" />}
+              <PasswordInput
                 testid="register-password-input"
                 placeholder="Password (min 6 characters)"
-                type="password"
                 value={regForm.password}
                 onChange={(v) => setRegForm({ ...regForm, password: v })}
+                autoComplete="new-password"
                 required
                 minLength={6}
               />
               <div>
-                <Field
-                  icon={<Lock className="w-4 h-4" />}
+                <PasswordInput
                   testid="register-confirm-password-input"
                   placeholder="Confirm password"
-                  type="password"
                   value={regForm.confirmPassword}
                   onChange={(v) => setRegForm({ ...regForm, confirmPassword: v })}
+                  autoComplete="new-password"
                   required
                   minLength={6}
                   className={showMismatchInline ? "border-red-400 focus:border-red-400" : ""}
@@ -380,10 +401,6 @@ export default function AuthModal() {
               >
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Create Account"}
               </button>
-
-              <p className="text-[11px] text-slate-500 text-center leading-relaxed">
-                Project Manager, Civil Engineer, Architect, Contractor and Brand Partner accounts are provisioned by the Admin.
-              </p>
             </form>
           )}
 

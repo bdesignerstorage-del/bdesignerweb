@@ -8,23 +8,23 @@
 import { LayoutDashboard, Settings } from "lucide-react";
 
 const DASHBOARD_URL = {
-  admin:            "/admin/dashboard",
+  admin:            "/admin",
   project_manager:  "/pm/dashboard",
   civil_engineer:   "/engineer/dashboard",
-  client:           "/client/dashboard",
-  customer:         "/client/dashboard",
+  client:           "/client",
+  customer:         "/client",
   brand_partner:    "/brand/dashboard",
   brand:            "/brand/dashboard",
 };
 
 const SETTINGS_URL = {
-  admin:            "/admin/settings",
+  admin:            "/admin",
   project_manager:  "/pm/settings",
   civil_engineer:   "/engineer/settings",
-  client:           "/client/settings",
-  customer:         "/profile",
-  brand_partner:    "/profile",
-  brand:            "/profile",
+  client:           "/client",
+  customer:         "/client",
+  brand_partner:    "/client",
+  brand:            "/client",
 };
 
 export function profileMenuForRole(role) {
