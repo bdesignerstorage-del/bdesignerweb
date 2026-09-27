@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import {
   X, ArrowLeft, ClipboardList, Upload, MapPin, Loader2, Mail,
   ChevronDown, ChevronUp, Sparkles, CheckCircle2,
@@ -31,6 +32,7 @@ function loadDraft() {
 
 export default function RequirementForm({ onClose }) {
   const { register, user, setAuthOpen, setAuthMode } = useAuth();
+  const navigate = useNavigate();
   const saved = loadDraft();
   const [step, setStep] = useState(saved?.step || 1);
   const [services, setServices] = useState([]);
@@ -199,6 +201,7 @@ export default function RequirementForm({ onClose }) {
       try { localStorage.removeItem(LS_KEY); } catch {}
       toast.success("Your project has been saved.");
       onClose?.();
+      navigate("/client");
     } catch (e) {
       setErr(e.response?.data?.detail || e.message || "Something went wrong.");
     } finally { setSubmitting(false); }
@@ -220,6 +223,7 @@ export default function RequirementForm({ onClose }) {
       try { localStorage.removeItem(LS_KEY); } catch {}
       toast.success("Account created — your project requirement is saved.");
       onClose?.();
+      navigate("/client");
     } catch (e) {
       const detail = e.response?.data?.detail || e.message || "Something went wrong.";
       // Email uniqueness — offer to log in and resume with the draft intact.
@@ -253,6 +257,7 @@ export default function RequirementForm({ onClose }) {
           try { localStorage.removeItem(LS_KEY); } catch {}
           toast.success("Logged in — your project requirement is saved.");
           onClose?.();
+          navigate("/client");
         } catch (e) {
           setErr(e.response?.data?.detail || e.message || "Something went wrong.");
         } finally { setSubmitting(false); }

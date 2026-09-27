@@ -120,12 +120,32 @@ export default function AuthModal() {
     e.preventDefault();
     setErr(""); setLoading(true);
     try {
-      await login(loginForm.email, loginForm.password, { remember_me: loginForm.remember });
+      const data = await login(loginForm.email, loginForm.password, { remember_me: loginForm.remember });
       toast.success("Welcome back");
       handleClose(false);
+      redirectAfterAuth(data);
     } catch (e2) {
       setErr(formatApiErrorDetail(e2.response?.data?.detail) || e2.message);
     } finally { setLoading(false); }
+  };
+
+  // Central post-auth redirect (used by both login and register handlers).
+  // Honors the Flow-D suppression flag and an optional intended destination.
+  const redirectAfterAuth = (data) => {
+    try {
+      if (sessionStorage.getItem("bd_suppress_auth_redirect") === "1") {
+        sessionStorage.removeItem("bd_suppress_auth_redirect");
+        return;
+      }
+    } catch { /* ignore */ }
+    let target = null;
+    try {
+      target = sessionStorage.getItem("bd_post_login_redirect");
+      if (target) sessionStorage.removeItem("bd_post_login_redirect");
+    } catch { /* ignore */ }
+    const dest = target || ROLE_TARGETS[data?.role] || "/client";
+    if (dest.startsWith("/client")) navigate(dest);
+    else window.location.href = dest;
   };
 
   // Passwords match when both are non-empty and identical.
@@ -153,9 +173,10 @@ export default function AuthModal() {
     }
     try {
       // Public signups are ALWAYS created as House Owner (client).
-      await register(name, email, regForm.password, mobile, "client");
+      const data = await register(name, email, regForm.password, mobile, "client");
       toast.success("Account created — welcome to BDesigner");
       handleClose(false);
+      redirectAfterAuth(data);
     } catch (e2) {
       setErr(formatApiErrorDetail(e2.response?.data?.detail) || e2.message);
     } finally { setLoading(false); }
