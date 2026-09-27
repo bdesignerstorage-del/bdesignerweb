@@ -629,6 +629,49 @@ async def requirement_services():
     return {"services": rows}
 
 
+# ── Architectural Services CMS (CONTENT ONLY — pricing lives in Admin → Pricing) ──
+async def _require_admin(request: Request) -> dict:
+    user = await current_user(request)
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return user
+
+
+class ServiceContentIn(BaseModel):
+    # Content fields only. Rate / pricing fields are intentionally NOT accepted
+    # here so the CMS can never change pricing (Admin → Pricing owns that).
+    name: Optional[str] = None
+    description: Optional[str] = None
+    image: Optional[str] = None
+    alt: Optional[str] = None
+    active: Optional[bool] = None
+    sort_order: Optional[int] = None
+
+
+@api.get("/admin/services")
+async def admin_list_services(request: Request):
+    await _require_admin(request)
+    rows = await db.service_catalog.find({}, {"_id": 0}).sort("sort_order", 1).to_list(50)
+    return {"services": rows}
+
+
+@api.patch("/admin/services/{code}")
+async def admin_update_service_content(code: str, payload: ServiceContentIn, request: Request):
+    await _require_admin(request)
+    patch = {k: v for k, v in payload.model_dump(exclude_none=True).items()}
+    # Hard guard: strip anything pricing-related even if a client sneaks it in.
+    for banned in ("rate", "ground_floor_rate", "additional_floor_rate", "minimum_charge",
+                   "pricing_type", "additional_view_discount_percent"):
+        patch.pop(banned, None)
+    if not patch:
+        raise HTTPException(status_code=400, detail="No editable content fields provided")
+    res = await db.service_catalog.update_one({"code": code}, {"$set": patch})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Service not found")
+    row = await db.service_catalog.find_one({"code": code}, {"_id": 0})
+    return {"ok": True, "service": row}
+
+
 def _normalise_floors(raw_floors, fallback_area: float = 0.0):
     """Recalculate every floor's built-up area from its four side dimensions.
     Returns (structured_floors, floor_areas). Falls back to a single ground-floor
