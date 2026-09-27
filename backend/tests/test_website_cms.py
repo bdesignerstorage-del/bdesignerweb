@@ -8,7 +8,7 @@ import pytest
 import requests
 
 BASE_URL = (os.environ.get("REACT_APP_BACKEND_URL")
-            or "https://repo-preview-107.preview.emergentagent.com").rstrip("/")
+            or "https://github-preview-68.preview.emergentagent.com").rstrip("/")
 ADMIN_EMAIL = "admin@bdesigner.com"
 ADMIN_PASSWORD = "9-D6NIbzb8Gz0yHK"
 

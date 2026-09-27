@@ -26,7 +26,7 @@ Expected: all pass. Report FAIL with endpoint+payload+response. Additive entry �
 **ALL 54 TESTS PASSED (100%)** — The STAGE 5 FINAL COMMERCIAL + PAYMENT INTEGRATION + CLIENT PANEL module is working correctly. All 10 test plan steps executed successfully, covering client-commercial endpoint (PM & CLIENT views), payment plan materialization, payment commercial-status with versioning, V2 approval workflow, apply-variation with audit trail, client-safe responses (NO internal fields), historical preservation, signed agreement protection, security controls, and regression checks.
 
 ### Test Environment
-- Backend URL: `https://github-web-deploy-13.preview.emergentagent.com/api`
+- Backend URL: `https://github-preview-68.preview.emergentagent.com/api`
 - Test date: 2026-08-27
 - Test file: `/app/backend_test_stage5.py`
 - Total tests: 54 (covering all 10 test plan steps with detailed verification)
@@ -377,7 +377,7 @@ Expected: all pass. Report FAIL with endpoint+payload+response. Additive entry �
 **ALL 37 TESTS PASSED (100%)** — The INTEGRATION module connecting Package V1/V2, Agreement, and Payments is working correctly. All 10 test plan steps executed successfully, covering commercial status tracking, payment materialization, V2 approval workflow, variation application, signed agreement protection, security controls, and regression checks.
 
 ### Test Environment
-- Backend URL: `https://github-web-deploy-13.preview.emergentagent.com/api`
+- Backend URL: `https://github-preview-68.preview.emergentagent.com/api`
 - Test date: 2026-08-27
 - Test file: `/app/backend_test_integration.py`
 - Total tests: 37 (covering all 10 test plan steps with detailed verification)
@@ -742,7 +742,7 @@ Expected: all pass. Report FAIL with endpoint+payload+response. Additive entry o
 **ALL 21 TESTS PASSED (100%)** — The Stage 3 LIVE COST + PACKAGE V1 FINALIZATION backend module is working correctly. All 12 test plan steps executed successfully, covering eligible leads, config retrieval, categories and options, live cost calculation with NO DOUBLE COUNTING, custom selections, V1 finalization, lock behavior, historical snapshot safety, cross-system verification, and regression checks.
 
 ### Test Environment
-- Backend URL: `https://github-web-deploy-13.preview.emergentagent.com/api`
+- Backend URL: `https://github-preview-68.preview.emergentagent.com/api`
 - Test date: 2026-08-27
 - Test file: `/app/backend_test_stage3.py`
 - Total tests: 21 (covering all 12 test plan steps with detailed verification)
@@ -1096,7 +1096,7 @@ Expected: all pass. Report FAIL with endpoint+payload+response body. Additive en
 **ALL 12 TESTS PASSED (100%)** — The Stage 2 MASTER DATABASE backend module is working correctly. All 12 test plan steps executed successfully, covering package retrieval, category structure, subsections, client-safe option responses, comparison views, cost calculation with no double counting, OPTIONAL selections, unification across APIs, admin propagation, validation, auth guards, and regression checks.
 
 ### Test Environment
-- Backend URL: `https://github-web-deploy-13.preview.emergentagent.com/api`
+- Backend URL: `https://github-preview-68.preview.emergentagent.com/api`
 - Test date: 2026-08-27
 - Test file: `/app/backend_test_master_data.py`
 - Total tests: 12 (covering all 12 test plan steps)
@@ -1448,7 +1448,7 @@ NOTE: Additive entry only. Do NOT edit any existing "Testing Protocol" section b
 **ALL 40 TESTS PASSED (100%)** — The Phase 4 · Module 10 PROJECT DASHBOARD + PACKAGE VERSIONING backend module is working correctly. All 12 test plan steps executed successfully, covering dashboard aggregation, package version workflow (V1 → V2), version preservation, lifecycle tracking, and role-based access control.
 
 ### Test Environment
-- Backend URL: `https://github-web-deploy-13.preview.emergentagent.com/api`
+- Backend URL: `https://github-preview-68.preview.emergentagent.com/api`
 - Test date: 2026-08-27
 - Test file: `/app/backend_test_module10.py`
 - Total tests: 40 (covering all 12 test plan steps with detailed verification)
@@ -1882,7 +1882,7 @@ NOTE: Do NOT edit any existing "Testing Protocol" section below. Additive entry 
 **ALL 21 TESTS PASSED (100%)** — The Phase 3.9 PROJECT CREATION & TEAM backend module is working correctly. All 13 test plan steps executed successfully, covering project creation from approved agreements, team assignment, role-based access, financial field stripping, and duplicate protection.
 
 ### Test Environment
-- Backend URL: `https://github-web-deploy-13.preview.emergentagent.com/api`
+- Backend URL: `https://github-preview-68.preview.emergentagent.com/api`
 - Test date: 2026-08-25
 - Test file: `/app/backend_test_project_creation.py`
 - Total tests: 21 (covering all 13 test plan steps + additional verification)
@@ -2317,7 +2317,7 @@ NOTE: Do NOT edit any existing "Testing Protocol" section below. Additive entry 
 **13 OUT OF 15 TESTS PASSED (86.7%)** — The Phase 3.8 PAYMENTS backend module is working correctly. All core payment workflow functionality is operational: payment plan initialization, role-based permissions, workflow transitions (ready → request → submit → reject → resubmit → verify → paid), receipt generation, commercial safety (totals update), and settings management.
 
 ### Test Environment
-- Backend URL: `https://github-web-deploy-13.preview.emergentagent.com/api`
+- Backend URL: `https://github-preview-68.preview.emergentagent.com/api`
 - Test date: 2026-08-25
 - Test file: `/app/backend_test_payments.py`
 - Total tests: 15 (covering all 15 test plan steps)
@@ -2781,7 +2781,7 @@ NOTE: Do NOT edit any existing "Testing Protocol" section below. Additive entry 
 **ALL TESTS PASSED (27/27 - 100%)** — The Phase 3.7 AGREEMENTS backend module is working correctly. All 13 test plan steps executed successfully, covering templates CRUD, agreement creation from approved V1, value confirmation, client workflow (view/reject/approve), locking, and role-based security.
 
 ### Test Environment
-- Backend URL: `https://github-web-deploy-13.preview.emergentagent.com/api`
+- Backend URL: `https://github-preview-68.preview.emergentagent.com/api`
 - Test date: 2026-08-25
 - Test file: `/app/backend_test_agreements.py`
 - Total tests: 27 (covering all 13 test plan steps)
@@ -3248,7 +3248,7 @@ NOTE: Do NOT edit any existing "Testing Protocol" section below. Additive entry 
 **ALL TESTS PASSED (10/10 - 100%)** — The V1 finalization and BOQ comparison endpoints are working correctly. The immutability guard is functioning as expected, preserving the approved V1 snapshot even after live config changes.
 
 ### Test Environment
-- Backend URL: `https://github-web-deploy-13.preview.emergentagent.com/api`
+- Backend URL: `https://github-preview-68.preview.emergentagent.com/api`
 - Test date: 2026-08-25
 - Test file: `/app/backend_test_stage4_5.py`
 - Total tests: 10
@@ -3513,7 +3513,7 @@ NOTE: Do NOT edit any existing "Testing Protocol" section below. Additive entry 
 **ALL TESTS PASSED (27/27 - 100%)** — The approximate BUDGETARY cost engine is working correctly with NO double counting. All cost calculations are accurate and all required keys are present in the response.
 
 ### Test Environment
-- Backend URL: `https://github-web-deploy-13.preview.emergentagent.com/api`
+- Backend URL: `https://github-preview-68.preview.emergentagent.com/api`
 - Test date: 2026-08-24
 - Test file: `/app/backend_test_stage3.py`
 - Total tests: 27
@@ -3965,7 +3965,7 @@ NOTE: Do NOT edit any existing "Testing Protocol" section below. This is an addi
 **ALL TESTS PASSED (15/15 - 100%)** — Project-level access flow working correctly after NotificationService.send → .create fix.
 
 ### Test Environment
-- Backend URL: `https://github-web-deploy-13.preview.emergentagent.com/api`
+- Backend URL: `https://github-preview-68.preview.emergentagent.com/api`
 - Test date: 2026-08-19
 - Test file: `/app/backend_test_project_access.py`
 - Total tests: 15 (8 main steps with sub-tests)
@@ -4261,7 +4261,7 @@ Comprehensive test of the new global Light/Dark theme system across the entire B
 - ERP Admin: ThemeSegmented with data-testid="theme-opt-light" and "theme-opt-dark" (sidebar Appearance control)
 
 ### Test Environment
-- Frontend URL: `https://github-web-deploy-13.preview.emergentagent.com`
+- Frontend URL: `https://github-preview-68.preview.emergentagent.com`
 - Test date: 2026-08-17
 - Browser: Chromium (Playwright)
 - Viewport: Desktop (1920×1080)
@@ -4605,7 +4605,7 @@ Test ONLY `/packages` responsive layout. Do NOT modify code. Wait network idle +
 **ALL TESTS PASSED** — The mobile responsive layout for the Compare Construction Packages page is working perfectly. The new native-style mobile layout renders correctly on mobile viewports, the desktop multi-column comparison table is unchanged and working, and there are no page-level horizontal scroll issues.
 
 ### Test Environment
-- Frontend URL: `https://github-web-deploy-13.preview.emergentagent.com/packages?nointro=1`
+- Frontend URL: `https://github-preview-68.preview.emergentagent.com/packages?nointro=1`
 - Test date: 2026-08-15
 - Browser: Chromium (Playwright)
 - Viewports tested: Mobile (360×844, 390×844, 430×844), Desktop (1440×900)
@@ -4930,7 +4930,7 @@ Test ONLY the above. Do NOT modify code. Wait for network idle + ~4s. Desktop + 
 **ALL TESTS PASSED** — The 3 targeted homepage changes are working correctly on both desktop (1440×900) and mobile (390×844). Nav background is subtle dark translucent with NO blur, hero has NO central fade overlay, video has NO poster attribute, and calculator cards are side-by-side on desktop and stacked on mobile.
 
 ### Test Environment
-- Frontend URL: `https://github-web-deploy-13.preview.emergentagent.com/?nointro=1`
+- Frontend URL: `https://github-preview-68.preview.emergentagent.com/?nointro=1`
 - Test date: 2026-08-15
 - Browser: Chromium (Playwright)
 - Viewports tested: Desktop (1440×900), Mobile (390×844)
@@ -5238,7 +5238,7 @@ Test ONLY the items above (client-facing, homepage). Do NOT modify code. Wait fo
 **TESTS PASSED** — The homepage fixes (FIX 2/3/4) are working correctly. Stats numbers are smaller, calculator CTAs are present with correct navigation, old sections removed, and mobile modal behavior is perfect (audio player and sticky CTA properly hidden/shown).
 
 ### Test Environment
-- Frontend URL: `https://github-web-deploy-13.preview.emergentagent.com/?nointro=1`
+- Frontend URL: `https://github-preview-68.preview.emergentagent.com/?nointro=1`
 - Test date: 2026-08-14
 - Browser: Chromium (Playwright)
 - Viewports tested: Desktop (1440×900), Mobile (390×844)
@@ -5594,7 +5594,7 @@ Test ONLY the items above (client-facing). Do NOT modify code. Report per-item p
 **ALL TESTS PASSED** — The single fixed background fix is working perfectly. The duplicate-background bug has been resolved and the visual system is now soft and warm as intended.
 
 ### Test Environment
-- Frontend URL: `https://github-web-deploy-13.preview.emergentagent.com`
+- Frontend URL: `https://github-preview-68.preview.emergentagent.com`
 - Test date: 2026-08-13
 - Browser: Chromium (Playwright)
 - Viewports tested: Desktop (1920×1080), Mobile (390×844)
@@ -5849,7 +5849,7 @@ Test ONLY the Phase-2 items above (client-facing). Do NOT modify code. Report pe
 **Mixed results** — Some Phase 2 features working, but several critical issues found requiring main agent attention.
 
 ### Test Environment
-- Frontend URL: `https://github-web-deploy-13.preview.emergentagent.com`
+- Frontend URL: `https://github-preview-68.preview.emergentagent.com`
 - Test date: 2026-08-13
 - Browser: Chromium (Playwright)
 - Viewport: Desktop (1920×1080)
@@ -6468,7 +6468,7 @@ Test the new Project Cost Calculator on the public homepage and its integration 
 **8/8 tests passed (100%)** — All Project Cost Calculator frontend functionality working correctly.
 
 ### Test Environment
-- Frontend URL: `https://github-web-deploy-13.preview.emergentagent.com`
+- Frontend URL: `https://github-preview-68.preview.emergentagent.com`
 - Test date: 2026-08-07
 - Browser: Chromium (Playwright)
 - Viewports tested: Desktop (1920×1080), Mobile (390×844)
@@ -6739,7 +6739,7 @@ File management for design deliverables. Uploads PDF/DWG/DXF/SKP/RVT/JPG/PNG/DOC
 **18/18 tests passed (100%)** — All Design Deliverables endpoints working correctly.
 
 ### Test Environment
-- Backend URL: `https://github-web-deploy-13.preview.emergentagent.com/api/erp`
+- Backend URL: `https://github-preview-68.preview.emergentagent.com/api/erp`
 - Admin credentials: `admin@bdesigner.com` / `Admin@123`
 - Test project: `a0ebd664-ea04-47fc-8313-67def0c26220` (reused from Phase 2 Module 1)
 - Test file: `/app/backend_test_design_files.py`
@@ -7195,7 +7195,7 @@ Auto-generates a client-facing quotation from Module 8 Cost Estimation + Project
 **14/14 tests passed (100%)** — All Module 9 Client Quotation Generator endpoints working correctly.
 
 ### Test Environment
-- Backend URL: `https://github-web-deploy-13.preview.emergentagent.com/api/erp`
+- Backend URL: `https://github-preview-68.preview.emergentagent.com/api/erp`
 - Admin credentials: `admin@bdesigner.com` / `Admin@123`
 - Test project: `a0ebd664-ea04-47fc-8313-67def0c26220` (fresh project with 5 rooms, building config, specs, BOQ, cost estimation)
 - Test file: `/app/backend_test_quotation.py`
@@ -7605,7 +7605,7 @@ BOQ generated automatically from the Quantity Engine (Module 6). System items ar
 **21/21 tests passed (100%)** — All Module 7 BOQ endpoints working correctly.
 
 ### Test Environment
-- Backend URL: `https://github-web-deploy-13.preview.emergentagent.com/api/erp`
+- Backend URL: `https://github-preview-68.preview.emergentagent.com/api/erp`
 - Admin credentials: `admin@bdesigner.com` / `Admin@123`
 - Test project: `ee72a72e-eae3-49d9-b9dd-aece5ccd903a` (P-000004, "ROOM-SCHEDULE-TEST" with 11 rooms + building config + specs)
 - Test file: `/app/backend_test_boq.py`
@@ -7941,7 +7941,7 @@ Core calculation module. Reads inputs from Building Configuration, Room Schedule
 Backend testing of newly added Quantity Estimation Engine endpoints (Module 6). Limited to `/api/erp/projects/{project_id}/quantities*` endpoints ONLY. Did NOT re-run older tests.
 
 ### Test Environment
-- Backend URL: `https://github-web-deploy-13.preview.emergentagent.com/api/erp`
+- Backend URL: `https://github-preview-68.preview.emergentagent.com/api/erp`
 - Admin credentials: `admin@bdesigner.com` / `Admin@123`
 - Test project: `ee72a72e-eae3-49d9-b9dd-aece5ccd903a` (P-000004, "ROOM-SCHEDULE-TEST")
 - Test file: `/app/backend_test_quantities.py`
@@ -8292,7 +8292,7 @@ Backend testing of newly added Room Schedule endpoints (Module 4 v2). Limited to
 ---
 
 
-- Backend URL: `https://github-web-deploy-13.preview.emergentagent.com/api/erp`
+- Backend URL: `https://github-preview-68.preview.emergentagent.com/api/erp`
 - Admin credentials: `admin@bdesigner.com` / `Admin@123`
 - Test project: `ee72a72e-eae3-49d9-b9dd-aece5ccd903a` (P-000004, "ROOM-SCHEDULE-TEST")
 - Test file: `/app/backend_test_rooms.py`
@@ -8611,7 +8611,7 @@ Mounted at `/api/erp` prefix. Full paths listed:
 Backend testing of newly added Construction Specifications endpoints (Module 5). Limited to `/api/erp/projects/{project_id}/specifications*` and `/api/erp/specifications/presets*` endpoints ONLY. Did NOT re-run older tests.
 
 ### Test Environment
-- Backend URL: `https://github-web-deploy-13.preview.emergentagent.com/api/erp`
+- Backend URL: `https://github-preview-68.preview.emergentagent.com/api/erp`
 - Admin credentials: `admin@bdesigner.com` / `Admin@123`
 - Test project: `f3fc415d-8769-4648-953f-b680b67d50d5` (P-000005, "SPECS-TEST")
 - Test file: `/app/backend_test_specifications.py`
@@ -8908,7 +8908,7 @@ Collections created: `erp_building_blocks`, `erp_building_floors`, `erp_building
 Backend testing of newly added Building Space Planner endpoints (Module 4). Limited to `/api/erp/projects/{project_id}/space/*` endpoints ONLY. Did NOT re-run older tests.
 
 ### Test Environment
-- Backend URL: `https://github-web-deploy-13.preview.emergentagent.com/api/erp`
+- Backend URL: `https://github-preview-68.preview.emergentagent.com/api/erp`
 - Admin credentials: `admin@bdesigner.com` / `Admin@123`
 - Test project: `cefe6140-28e8-45e9-bbd0-92d923a38748` (P-000002, "SPACE-TEST-VILLA")
 - Test file: `/app/backend_test_space_module.py`
@@ -9257,7 +9257,7 @@ The Module 4 Building Space Planner backend implementation is production-ready. 
 Backend testing of newly added Building Configuration endpoints (Module 3). Limited to `/api/erp/projects/{project_id}/building` endpoints ONLY. Did NOT re-run older tests.
 
 ### Test Environment
-- Backend URL: `https://github-web-deploy-13.preview.emergentagent.com/api`
+- Backend URL: `https://github-preview-68.preview.emergentagent.com/api`
 - Admin credentials: `admin@bdesigner.com` / `Admin@123`
 - Test project: `4ed9adc0-6d02-44e8-8ba4-969eb90fe7c1` (P-000001, "Modern Villa - Whitefield")
 - Test file: `/app/backend_test_building_module.py`
@@ -9506,7 +9506,7 @@ Full production implementation of Module 3 — Building Configuration. Loads ins
 Backend testing of newly added Plot Configuration endpoints (Module 2). Limited to `/api/erp/projects/{project_id}/plot*` endpoints ONLY. Did NOT re-run older tests.
 
 ### Test Environment
-- Backend URL: `https://github-web-deploy-13.preview.emergentagent.com/api`
+- Backend URL: `https://github-preview-68.preview.emergentagent.com/api`
 - Admin credentials: `admin@bdesigner.com` / `Admin@123`
 - Test project: `4ed9adc0-6d02-44e8-8ba4-969eb90fe7c1` (P-000001, "Modern Villa - Whitefield")
 - Test file: `/app/backend_test_plot_module.py`
@@ -9788,7 +9788,7 @@ Full production implementation of Module 2 — Plot Configuration. Loads inside 
 Backend testing of newly added/modified endpoints in the Project Module (Iteration 2). Limited to current iteration changes only — did NOT re-run older phase tests.
 
 ### Test Environment
-- Backend URL: `https://github-web-deploy-13.preview.emergentagent.com/api`
+- Backend URL: `https://github-preview-68.preview.emergentagent.com/api`
 - Admin credentials: `admin@bdesigner.com` / `Admin@123`
 - Test file: `/app/backend_test_project_module_iteration2.py`
 - Total tests: 15
@@ -10177,7 +10177,7 @@ Per user request "All of the above":
 ### Testing Agent: E2 (Backend Testing)
 
 **Test Environment:**
-- Backend URL: https://github-web-deploy-13.preview.emergentagent.com/api
+- Backend URL: https://github-preview-68.preview.emergentagent.com/api
 - Admin credentials: admin@bdesigner.com / Admin@123
 - Test file: /app/backend_test.py
 - Total tests: 42
@@ -10464,7 +10464,7 @@ Test the new Brand Partner Dashboard backend endpoint `GET /api/brand/me/dashboa
 - Brand Partner: `bmauth-updated-dcfd4c2e@example.com` / `BrandDash#2026` (test account)
 
 ### Preview URL
-- https://github-web-deploy-13.preview.emergentagent.com/api
+- https://github-preview-68.preview.emergentagent.com/api
 
 ---
 
@@ -10473,7 +10473,7 @@ Test the new Brand Partner Dashboard backend endpoint `GET /api/brand/me/dashboa
 ### Testing Agent: E2 (Backend Testing)
 
 **Test Environment:**
-- Backend URL: https://github-web-deploy-13.preview.emergentagent.com/api
+- Backend URL: https://github-preview-68.preview.emergentagent.com/api
 - Admin credentials: admin@bdesigner.com / Admin@123
 - Customer credentials: customer@bdesigner.com / Customer@123
 - Test brand: Demo Brand Partner (1b28ea4c-f679-4a6a-b0d2-fa776fb30f6c)
@@ -10687,7 +10687,7 @@ Six new lightweight admin tabs inside `/admin/brand-management`:
 - Existing endpoints still work: `GET /api/admin/partners`, `GET /api/admin/brands`, `GET /api/partner/plans`, `POST /api/admin/partners/{id}/approve`, `POST /api/admin/partners/{id}/activate-premium-manual`, `POST /api/admin/brands/{id}/status`, `PUT /api/admin/brands/{id}`, `POST /api/admin/materials/{id}/approve|reject`, `PUT /api/admin/materials/{id}`.
 
 ### Preview URL
-- https://github-web-deploy-13.preview.emergentagent.com/admin/brand-management
+- https://github-preview-68.preview.emergentagent.com/admin/brand-management
 
 ---
 
@@ -10712,7 +10712,7 @@ New admin page at `/admin/website/homepage` for managing 6 homepage content sect
 - Preview button functionality
 
 ### Preview URL
-- https://github-web-deploy-13.preview.emergentagent.com/admin/website/homepage
+- https://github-preview-68.preview.emergentagent.com/admin/website/homepage
 
 ---
 
@@ -10961,7 +10961,7 @@ Expanded the Homepage CMS with 6 additional sections and section-level settings:
 ### Testing Agent: E2 (Backend Testing)
 
 **Test Environment:**
-- Backend URL: https://github-web-deploy-13.preview.emergentagent.com/api
+- Backend URL: https://github-preview-68.preview.emergentagent.com/api
 - Admin credentials: admin@bdesigner.com / Admin@123
 - Test file: /app/backend_test.py
 
@@ -11345,7 +11345,7 @@ Test the newly added `GET /api/admin/materials` endpoint and verify existing end
 ### Testing Agent: E2 (Backend Testing)
 
 **Test Environment:**
-- Backend URL: https://github-web-deploy-13.preview.emergentagent.com/api
+- Backend URL: https://github-preview-68.preview.emergentagent.com/api
 - Admin credentials: admin@bdesigner.com / Admin@123
 - Customer credentials: customer@bdesigner.com / Customer@123
 - Test file: /app/backend_test.py
@@ -11555,7 +11555,7 @@ Test the newly added Brand Management Settings backend endpoints for admin confi
 - Customer (non-admin): `customer@bdesigner.com` / `Customer@123`
 
 ### Preview URL
-- https://github-web-deploy-13.preview.emergentagent.com/api
+- https://github-preview-68.preview.emergentagent.com/api
 
 ---
 
@@ -11564,7 +11564,7 @@ Test the newly added Brand Management Settings backend endpoints for admin confi
 ### Testing Agent: E2 (Backend Testing)
 
 **Test Environment:**
-- Backend URL: https://github-web-deploy-13.preview.emergentagent.com/api
+- Backend URL: https://github-preview-68.preview.emergentagent.com/api
 - Admin credentials: admin@bdesigner.com / Admin@123
 - Customer credentials: customer@bdesigner.com / Customer@123
 - Test file: /app/backend_test.py
@@ -11822,7 +11822,7 @@ Test the Brand Management → Authentication Management backend endpoints. This 
 - Customer (non-admin): `customer@bdesigner.com` / `Customer@123`
 
 ### Preview URL
-- https://github-web-deploy-13.preview.emergentagent.com/api
+- https://github-preview-68.preview.emergentagent.com/api
 
 ---
 
@@ -11831,7 +11831,7 @@ Test the Brand Management → Authentication Management backend endpoints. This 
 ### Testing Agent: E2 (Backend Testing)
 
 **Test Environment:**
-- Backend URL: https://github-web-deploy-13.preview.emergentagent.com/api
+- Backend URL: https://github-preview-68.preview.emergentagent.com/api
 - Admin credentials: admin@bdesigner.com / Admin@123
 - Customer credentials: customer@bdesigner.com / Customer@123
 - Test file: /app/backend_test.py
@@ -12156,7 +12156,7 @@ Test and verify the Brand Partner login gating logic on `/api/auth/login`. Brand
 - Brand Partner: `bmauth-updated-dcfd4c2e@example.com` / `BrandTest#2026` (test account)
 
 ### Preview URL
-- https://github-web-deploy-13.preview.emergentagent.com/api
+- https://github-preview-68.preview.emergentagent.com/api
 
 ---
 
@@ -12165,7 +12165,7 @@ Test and verify the Brand Partner login gating logic on `/api/auth/login`. Brand
 ### Testing Agent: E2 (Backend Testing)
 
 **Test Environment:**
-- Backend URL: https://github-web-deploy-13.preview.emergentagent.com/api
+- Backend URL: https://github-preview-68.preview.emergentagent.com/api
 - Admin credentials: admin@bdesigner.com / Admin@123
 - Customer credentials: customer@bdesigner.com / Customer@123
 - Test brand: Demo Brand Partner (1b28ea4c-f679-4a6a-b0d2-fa776fb30f6c)
@@ -12374,7 +12374,7 @@ Test the backend endpoints powering the Brand Partner Panel · Module 3 (My Bran
 - Brand Partner: `bmauth-updated-dcfd4c2e@example.com` / `MyBrand#2026` (test account)
 
 ### Preview URL
-- https://github-web-deploy-13.preview.emergentagent.com/api
+- https://github-preview-68.preview.emergentagent.com/api
 
 ---
 
@@ -12383,7 +12383,7 @@ Test the backend endpoints powering the Brand Partner Panel · Module 3 (My Bran
 ### Testing Agent: E2 (Backend Testing)
 
 **Test Environment:**
-- Backend URL: https://github-web-deploy-13.preview.emergentagent.com/api
+- Backend URL: https://github-preview-68.preview.emergentagent.com/api
 - Admin credentials: admin@bdesigner.com / Admin@123
 - Customer credentials: customer@bdesigner.com / Customer@123
 - Test brand: Demo Brand Partner (1b28ea4c-f679-4a6a-b0d2-fa776fb30f6c)
@@ -12574,7 +12574,7 @@ The Brand Partner Panel Module 3 (My Brand) implementation is production-ready. 
 ### Testing Agent: E2 (Frontend Testing)
 
 **Test Environment:**
-- Frontend URL: https://github-web-deploy-13.preview.emergentagent.com
+- Frontend URL: https://github-preview-68.preview.emergentagent.com
 - Admin credentials: admin@bdesigner.com / Admin@123
 - Test date: 2026-07-24
 - Browser: Playwright (Chromium)
@@ -12810,7 +12810,7 @@ Test the Brand Partner Panel Module 4 (Product Management) backend flows with tw
 - Brand Partner: `bmauth-updated-dcfd4c2e@example.com` / `BrandProd#2026` (test account)
 
 ### Preview URL
-- https://github-web-deploy-13.preview.emergentagent.com/api
+- https://github-preview-68.preview.emergentagent.com/api
 
 ---
 
@@ -12819,7 +12819,7 @@ Test the Brand Partner Panel Module 4 (Product Management) backend flows with tw
 ### Testing Agent: E2 (Backend Testing)
 
 **Test Environment:**
-- Backend URL: https://github-web-deploy-13.preview.emergentagent.com/api
+- Backend URL: https://github-preview-68.preview.emergentagent.com/api
 - Admin credentials: admin@bdesigner.com / Admin@123
 - Customer credentials: customer@bdesigner.com / Customer@123
 - Test brand: Demo Brand Partner (1b28ea4c-f679-4a6a-b0d2-fa776fb30f6c)
@@ -13103,7 +13103,7 @@ The Brand Partner Panel Module 4 (Product Management) implementation is producti
 ### Testing Agent: E2 (Backend Testing)
 
 **Test Environment:**
-- Backend URL: https://github-web-deploy-13.preview.emergentagent.com/api
+- Backend URL: https://github-preview-68.preview.emergentagent.com/api
 - Admin credentials: admin@bdesigner.com / Admin@123
 - Test file: /app/backend_test.py
 - Total tests: 24
@@ -13477,7 +13477,7 @@ The Project Module with Live Estimation implementation is production-ready. No i
 **16/16 tests passed (100%)** — All Module 8 Cost Estimation Engine endpoints working correctly.
 
 ### Test Environment
-- Backend URL: `https://github-web-deploy-13.preview.emergentagent.com/api/erp`
+- Backend URL: `https://github-preview-68.preview.emergentagent.com/api/erp`
 - Admin credentials: `admin@bdesigner.com` / `Admin@123`
 - Test project: `ee72a72e-eae3-49d9-b9dd-aece5ccd903a` (P-000004, "ROOM-SCHEDULE-TEST" with 11 rooms + building config + specs + BOQ from Module 7)
 - Test file: `/app/backend_test_cost_estimation.py`
@@ -13815,7 +13815,7 @@ The Module 8 Cost Estimation Engine backend implementation is production-ready. 
 **14/14 tests passed (100%)** — All Module 10 Reports & Dashboard endpoints working correctly.
 
 ### Test Environment
-- Backend URL: `https://github-web-deploy-13.preview.emergentagent.com/api/erp`
+- Backend URL: `https://github-preview-68.preview.emergentagent.com/api/erp`
 - Admin credentials: `admin@bdesigner.com` / `Admin@123`
 - Test project: `a0ebd664-ea04-47fc-8313-67def0c26220` (QUOTATION-TEST-FINAL with cost items and quotation)
 - Test file: `/app/backend_test_module10_reports.py`
@@ -14069,7 +14069,7 @@ The Module 10 Reports & Dashboard backend implementation is production-ready. No
 **61/61 tests passed (100%)** — All Phase 2 Module 1 Design Dashboard endpoints working correctly.
 
 ### Test Environment
-- Backend URL: `https://github-web-deploy-13.preview.emergentagent.com/api/erp`
+- Backend URL: `https://github-preview-68.preview.emergentagent.com/api/erp`
 - Admin credentials: `admin@bdesigner.com` / `Admin@123`
 - Test project: `a0ebd664-ea04-47fc-8313-67def0c26220` (reused from Module 10)
 - Test file: `/app/backend_test_design_dashboard.py`
@@ -14434,7 +14434,7 @@ Backend endpoint `GET /api/erp/admin/dashboard` — verify all 8 sections + peri
 **43/43 tests passed (100%)** — Admin Dashboard endpoint fully functional.
 
 ### Test Environment
-- Backend URL: `https://github-web-deploy-13.preview.emergentagent.com/api/erp`
+- Backend URL: `https://github-preview-68.preview.emergentagent.com/api/erp`
 - Admin credentials: `admin@bdesigner.com` / `Admin@123`
 - Test file: `/app/backend_test_admin_dashboard.py`
 - Total tests: 43
@@ -14860,7 +14860,7 @@ Auth, Roles, Sidebar, Header, Dashboard, Construction Projects List, Project Das
 **63/63 tests passed (100%)** — All Project Cost Calculator endpoints working correctly.
 
 ### Test Environment
-- Backend URL: `https://github-web-deploy-13.preview.emergentagent.com/api`
+- Backend URL: `https://github-preview-68.preview.emergentagent.com/api`
 - Admin credentials: `admin@bdesigner.com` / `Admin@123`
 - Test file: `/app/backend_test_calculator.py`
 - Total tests: 63
@@ -15053,7 +15053,7 @@ The MODULE 1 Project Cost Calculator backend implementation is production-ready.
 **10/10 tests passed (100%)** — All Calculator Admin endpoints working correctly.
 
 ### Test Environment
-- Backend URL: `https://github-web-deploy-13.preview.emergentagent.com/api`
+- Backend URL: `https://github-preview-68.preview.emergentagent.com/api`
 - Admin credentials: `admin@bdesigner.com` / `Admin@123`
 - Test date: 2026-08-07
 - Test file: `/app/backend_test_calculator_admin.py`
@@ -15323,7 +15323,7 @@ The MODULE 2 PASS 2B Calculator Admin backend implementation is production-ready
 **ALL 5 TESTS PASSED (100%)** — The hero video background, logo hero, and darker content implementation is working perfectly. The mobile centering bug has been fixed, and all features are functioning as specified.
 
 ### Test Environment
-- Frontend URL: `https://github-web-deploy-13.preview.emergentagent.com`
+- Frontend URL: `https://github-preview-68.preview.emergentagent.com`
 - Test date: 2026-08-14
 - Browser: Chromium (Playwright)
 - Viewports tested: Desktop (1440×820), Mobile (390×844)
@@ -15582,7 +15582,7 @@ The MODULE 2 PASS 2B Calculator Admin backend implementation is production-ready
 **ALL TESTS PASSED (100%)** — The AI Construction Advisor backend endpoints are working perfectly. SSE streaming chat, multi-turn context, history persistence, reset functionality, and validation are all functioning correctly.
 
 ### Test Environment
-- Backend URL: `https://github-web-deploy-13.preview.emergentagent.com/api`
+- Backend URL: `https://github-preview-68.preview.emergentagent.com/api`
 - Test date: 2026-08-19
 - Test file: `/app/test_advisor.py`
 - Total tests: 35
@@ -15834,7 +15834,7 @@ LiteLLM completion() model= gpt-5.4; provider = openai
 **ALL TESTS PASSED (10/10 - 100%)** — The Package & Proposal STAGE 2 backend flow is working perfectly. Area-aware cost calculations, meeting updates, base package selection, upgrades, custom selections, template saving, completion validation, and regression checks all verified and functional.
 
 ### Test Environment
-- Backend URL: `https://github-web-deploy-13.preview.emergentagent.com/api`
+- Backend URL: `https://github-preview-68.preview.emergentagent.com/api`
 - Test date: 2026-08-24
 - Test file: `/app/backend_test_stage2.py`
 - Total tests: 10 steps
@@ -16079,7 +16079,7 @@ LiteLLM completion() model= gpt-5.4; provider = openai
 **ALL 15 TESTS PASSED (100%)** — The Stage 4 FINAL BOQ COMPARISON + PACKAGE V2 / VARIATION backend module is working correctly. All 10 test plan steps executed successfully, covering the NEW variation engine (item-level V1 vs Final BOQ comparison), commercial summary with historical payment tracking, V2 package version workflow, V1 preservation, and security controls.
 
 ### Test Environment
-- Backend URL: `https://github-web-deploy-13.preview.emergentagent.com/api`
+- Backend URL: `https://github-preview-68.preview.emergentagent.com/api`
 - Test date: 2026-08-27
 - Test file: `/app/backend_test_stage4.py`
 - Total tests: 15 (covering all 10 test plan steps with detailed verification)

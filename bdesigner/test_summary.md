@@ -1,7 +1,7 @@
 # BDesigner ERP Phase 1.3 — Users & Permissions Backend Testing Summary
 
 ## Test Date: 2026-08-19
-## Base URL: https://github-web-deploy-13.preview.emergentagent.com/api
+## Base URL: https://github-preview-68.preview.emergentagent.com/api
 
 ## Overall Results: 47/48 PASS (97.9%)
 
